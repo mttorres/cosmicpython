@@ -1,0 +1,7 @@
+"Nothing particularly clever here, just some separation
+of different test types that you’re likely to want to run separately,
+and some files for common fixtures, config, and so on.
+
+There’s no src folder or setup.py in the test folders because we usually haven’t
+needed to make tests pip-installable, but if you have difficulties with import
+paths, you might find it helps."
