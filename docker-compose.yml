@@ -7,12 +7,22 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - postgres
+    # If you start to have enough
+    # containers that information (ev vars) starts to be duplicated in these sections,
+    # you can use environment_file instead. We usually call ours container.env.
     environment:
       - DB_HOST=postgres
       - DB_PASSWORD=abc123
       - API_HOST=app
       - PYTHONDONTWRITEBYTECODE=1
+      # if you’re mounting volumes to share source folders between your local dev machine and the container,
+      # the PYTHONDONTWRITEBYTECODE environment variable tells Python to not write .pyc files,
+      # and that will save you from having millions of root-owned files sprinkled all over your
+      #local filesystem, being all annoying to delete and causing weird Python compiler errors besides.
+      # https://stackoverflow.com/questions/2998215/if-python-is-interpreted-what-are-pyc-files
     volumes:
+      # Mounting our source and test code as volumes means we don’t need
+      # to rebuild our containers every time we make a code change.
       - ./src:/src
       - ./tests:/tests
     ports:
