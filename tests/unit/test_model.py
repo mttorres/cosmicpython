@@ -33,19 +33,28 @@ def test_allocating_to_a_batch_reduces_the_available_quantity():
 
 
 def test_allocating_to_a_batch_fails_if_available_quantity_is_less():
-    pytest.fail("TO IMPLEMENT")
+    batch, line = create_sample_batch_and_line("ELEGANT-LAMP", 2, 4)
+    assert batch.can_allocate(line) is False
 
 
 def test_allocating_to_a_batch_fails_if_for_the_same_order_line():
     pytest.fail("TO IMPLEMENT")
 
 
+def test_allocating_fails_if_skus_do_not_match():
+    batch = Batch("batch-001", "UNCOMFORTABLE-CHAIR", 100, eta=None)
+    different_sku_line = OrderLine("order-123", "EXPENSIVE-TOASTER", 10)
+    assert batch.can_allocate(different_sku_line) is False
+
+
 def test_can_allocate_if_available_quantity_is_greater():
-    pytest.fail("TO IMPLEMENT")
+    batch, line = create_sample_batch_and_line("ELEGANT-LAMP", 20, 2)
+    assert batch.can_allocate(line)
 
 
 def test_can_allocate_if_available_quantity_is_equal():
     batch, line = create_sample_batch_and_line("ELEGANT-LAMP", 2, 2)
+    assert batch.can_allocate(line)
 
 
 def test_allocating_to_a_batch_preferences_warehouse_stock():
