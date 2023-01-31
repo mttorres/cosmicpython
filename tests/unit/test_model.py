@@ -63,6 +63,13 @@ def test_can_deallocate_only_allocated_lines():
     assert batch.available_quantity == 20
 
 
+def test_allocation_for_same_line_keep_same_quantity():
+    batch, line = create_sample_batch_and_line("ANGULAR-DESK", 20, 2)
+    batch.allocate(line)
+    batch.allocate(line)
+    assert batch.available_quantity == 18
+
+
 def test_allocating_to_a_batch_preferences_warehouse_stock():
     pytest.fail("TO IMPLEMENT")
 
