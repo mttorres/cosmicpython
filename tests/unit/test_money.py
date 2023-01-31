@@ -15,6 +15,13 @@ def test_can_subtract_money_values():
     assert tenner - fiver == fiver
 
 
+def test_subtracting_results_negative_fails():
+    with pytest.raises(ValueError):
+        fiver = Money('gbp', 5)
+        tenner = Money('gbp', 10)
+        fiver - tenner
+
+
 def test_adding_different_currencies_fails():
     with pytest.raises(ValueError):
         Money('usd', 10) + Money('gbp', 10)
