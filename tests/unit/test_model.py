@@ -57,6 +57,12 @@ def test_can_allocate_if_available_quantity_is_equal():
     assert batch.can_allocate(line)
 
 
+def test_can_deallocate_only_allocated_lines():
+    batch, unallocated_line = create_sample_batch_and_line("DECORATIVE-TRINKET", 20, 2)
+    batch.deallocate(unallocated_line)
+    assert batch.available_quantity == 20
+
+
 def test_allocating_to_a_batch_preferences_warehouse_stock():
     pytest.fail("TO IMPLEMENT")
 
