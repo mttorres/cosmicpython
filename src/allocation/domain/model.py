@@ -1,7 +1,13 @@
-import dataclasses
+from __future__ import annotations
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 from dataclasses import dataclass
+
+
+def allocate(line: OrderLine, batches: List[Batch]) -> str:
+    batch = next(b for b in sorted(batches) if b.can_allocate(line))
+    batch.allocate(line)
+    return batch.reference
 
 
 @dataclass(frozen=True)  # ORDER LINE É IMUTÁVEL E SEM COMPORTAMENTOS (pelo menos por enquanto)
@@ -42,6 +48,13 @@ class Batch:
         if not isinstance(other, Batch):
             return False
         return other.reference == self.reference
+
+    def __gt__(self, other):
+        if self.eta is None:
+            return False
+        if other.eta is None:
+            return True
+        return self.eta > other.eta
 
     def __hash__(self):
         # note: it would be best if reference was read-only
