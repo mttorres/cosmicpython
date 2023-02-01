@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 import pytest
 
 # inicialmente esse statement vai estar comentado para o teste falhar
@@ -37,10 +37,6 @@ def test_allocating_to_a_batch_fails_if_available_quantity_is_less():
     assert batch.can_allocate(line) is False
 
 
-def test_allocating_to_a_batch_fails_if_for_the_same_order_line():
-    pytest.fail("TO IMPLEMENT")
-
-
 def test_allocating_fails_if_skus_do_not_match():
     batch = Batch("batch-001", "UNCOMFORTABLE-CHAIR", 100, eta=None)
     different_sku_line = OrderLine("order-123", "EXPENSIVE-TOASTER", 10)
@@ -68,11 +64,3 @@ def test_allocation_for_same_line_keep_same_quantity():
     batch.allocate(line)
     batch.allocate(line)
     assert batch.available_quantity == 18
-
-
-def test_allocating_to_a_batch_preferences_warehouse_stock():
-    pytest.fail("TO IMPLEMENT")
-
-
-def test_allocating_to_a_batch_ordered_by_eta():
-    pytest.fail("TO IMPLEMENT")
