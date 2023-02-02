@@ -17,9 +17,7 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
         raise OutOfStock(f"Out of stock for sku {line.sku}")
 
 
-
-
-@dataclass(frozen=True)  # ORDER LINE É IMUTÁVEL E SEM COMPORTAMENTOS (pelo menos por enquanto)
+@dataclass(unsafe_hash=True)
 class OrderLine:
     orderid: str
     sku: str
