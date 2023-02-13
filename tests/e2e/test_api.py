@@ -39,6 +39,6 @@ def test_api_returns_allocation(add_stock):
 
     r = requests.post(f"{url}/allocate", json=data)
 
-    assert r.status_code == 200
+    assert r.status_code == 201
     assert r.json()["batchref"] == earlybatch
 

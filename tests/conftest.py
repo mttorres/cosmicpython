@@ -1,7 +1,8 @@
 import pytest
 import time
 import requests
-from sqlite3 import OperationalError
+from requests.exceptions import ConnectionError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, clear_mappers
 from pathlib import Path
