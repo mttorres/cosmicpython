@@ -12,6 +12,10 @@ get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
 
 
+def is_valid_sku(sku, batches):
+    return sku in {b.sku for b in batches}
+
+
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
     db_session = get_session()
@@ -20,8 +24,13 @@ def allocate_endpoint():
         request.json["orderid"], request.json["sku"], request.json["qty"],
     )
 
-    batch_ref = model.allocate(line, batches)
+    if not is_valid_sku(line.sku, batches):
+        return {"message": f"Invalid sku {line.sku}"}, 400
+
+    try:
+        batch_ref = model.allocate(line, batches)
+    except model.OutOfStock as e:
+        return {"message": str(e)}, 400
 
     db_session.commit()
-
     return {"batchref": batch_ref}, 201
