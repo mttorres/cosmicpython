@@ -5,6 +5,7 @@ from src.allocation.adapters.repository import FakeRepository
 from src.allocation.service_layer import services
 
 
+# spy?
 class FakeSession:
     committed = False
 
