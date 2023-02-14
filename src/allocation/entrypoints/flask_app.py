@@ -22,4 +22,6 @@ def allocate_endpoint():
 
     batch_ref = model.allocate(line, batches)
 
+    db_session.commit()
+
     return {"batchref": batch_ref}, 201
