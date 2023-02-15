@@ -8,6 +8,10 @@ class OutOfStock(Exception):
     pass
 
 
+class NotAllocated(Exception):
+    pass
+
+
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
     try:
         batch = next(b for b in sorted(batches) if b.can_allocate(line))
@@ -17,7 +21,8 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
         raise OutOfStock(f"Out of stock for sku {line.sku}")
 
 
-
+def deallocate(orderid: str, batch: Batch):
+    raise NotImplementedError
 
 
 @dataclass(unsafe_hash=True)

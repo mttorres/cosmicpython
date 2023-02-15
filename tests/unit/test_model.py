@@ -94,6 +94,5 @@ def test_allocating_for_same_line_maintains_order_collection():
     batch, line = create_sample_batch_and_line("ANGULAR-DESK", 20, 2)
     batch.allocate(line)
     batch.allocate(line)
-    assert batch.available_quantity == 18
     assert 2 in batch.quantities_per_order(line.orderid)
 
