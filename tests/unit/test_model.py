@@ -53,6 +53,18 @@ def test_can_allocate_if_available_quantity_is_equal():
     assert batch.can_allocate(line)
 
 
+def test_is_allocated_for_false_if_order_not_allocated():
+    batch = Batch("batch-001", "UNCOMFORTABLE-CHAIR", 100, eta=None)
+    different_sku_line = OrderLine("order-123", "EXPENSIVE-TOASTER", 10)
+    assert batch.is_allocated_for(different_sku_line)
+
+
+def test_is_allocated_for_if_order_is_allocated():
+    batch, line = create_sample_batch_and_line("ANGULAR-DESK", 20, 2)
+    batch.allocate(line)
+    batch.is_allocated_for(line)
+
+
 def test_can_deallocate_only_allocated_lines():
     batch, unallocated_line = create_sample_batch_and_line("DECORATIVE-TRINKET", 20, 2)
     batch.deallocate(unallocated_line)

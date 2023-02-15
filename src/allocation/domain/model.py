@@ -31,6 +31,7 @@ class Batch:
         self.eta = eta
         self._purchased_quantity = qty
         self._allocations = set()
+        self._allocated_ids = set()
 
     def can_allocate(self, line: OrderLine) -> bool:
         return self.sku == line.sku and self.available_quantity >= line.qty
@@ -42,6 +43,9 @@ class Batch:
     def deallocate(self, line: OrderLine):
         if line in self._allocations:
             self._allocations.remove(line)
+
+    def is_allocated_for(self, line: OrderLine):
+        raise
 
     @property
     def allocated_quantity(self) -> int:
