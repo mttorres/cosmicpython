@@ -41,11 +41,11 @@ class Batch:
             self._allocations.add(line)
 
     def deallocate(self, line: OrderLine):
-        if line in self._allocations:
+        if self.is_allocated_for(line):
             self._allocations.remove(line)
 
     def is_allocated_for(self, line: OrderLine):
-        raise
+        return line in self._allocations
 
     @property
     def allocated_quantity(self) -> int:
