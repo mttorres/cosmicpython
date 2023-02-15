@@ -1,4 +1,5 @@
 import abc
+from sqlalchemy.sql import text
 from src.allocation.domain import model
 
 
@@ -26,6 +27,13 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def list(self):
         return self.session.query(model.Batch).all()
+
+    def get_by_orderid_and_sku(self, orderid, sku):
+        # temp
+        for b in (b for b in sorted(self.session.query(model.Batch).filter_by(sku=sku).all()) if
+                  b.is_allocated_for(orderid)):
+            return b
+        return None
 
 
 class FakeRepository(AbstractRepository):
