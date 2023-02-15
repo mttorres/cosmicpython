@@ -68,3 +68,22 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     assert retrieved._allocations == {  #
         model.OrderLine("order1", "GENERIC-SOFA", 12),
     }
+
+
+def test_repository_can_retrieve_a_batch_by_specific_order_line(session):
+    orderline_id = util_insert_order_line(session)
+    batch1_id = util_insert_batch(session, "batch1")
+    util_insert_batch(session, "batch2")
+    util_insert_batch(session, "batch3")
+    util_insert_allocation(session, orderline_id, batch1_id)
+
+    repo = repository.SqlAlchemyRepository(session)
+    retrieved = repo.get_by_orderid_and_sku("order1", "GENERIC-SOFA")
+
+    expected = model.Batch("batch1", "GENERIC-SOFA", 100, eta=None)
+    assert retrieved == expected
+    assert retrieved.sku == expected.sku
+    assert retrieved._purchased_quantity == expected._purchased_quantity
+    assert retrieved._allocations == {
+        model.OrderLine("order1", "GENERIC-SOFA", 12),
+    }
