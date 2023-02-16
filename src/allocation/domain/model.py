@@ -22,6 +22,10 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
 
 
 def deallocate(orderid: str, batch: Batch):
+    '''
+    for qty in batch.quantities_per_order(orderid):
+        batch.deallocate(OrderLine(orderid, batch.sku, qty))
+    '''
     raise NotImplementedError
 
 
@@ -39,7 +43,6 @@ class Batch:
         self.eta = eta
         self._purchased_quantity = qty
         self._allocations = set()
-        self._order_qty_collection = {}
 
     def can_allocate(self, line: OrderLine) -> bool:
         return self.sku == line.sku and self.available_quantity >= line.qty
@@ -47,23 +50,13 @@ class Batch:
     def allocate(self, line: OrderLine):
         if self.can_allocate(line):
             self._allocations.add(line)
-            if line.orderid in self._order_qty_collection:
-                self._order_qty_collection[line.orderid].add(line.qty)
-            else:
-                self._order_qty_collection[line.orderid] = {line.qty}
 
     def deallocate(self, line: OrderLine):
         if self.is_allocated_for_line(line):
             self._allocations.remove(line)
 
-    def is_allocated_for_order(self, orderid: str):
-        return orderid in self._order_qty_collection
-
     def is_allocated_for_line(self, line: OrderLine):
         return line in self._allocations
-
-    def quantities_per_order(self, orderid: str):
-        return self._order_qty_collection.get(orderid, set())
 
     @property
     def allocated_quantity(self) -> int:
