@@ -21,12 +21,9 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
         raise OutOfStock(f"Out of stock for sku {line.sku}")
 
 
-def deallocate(orderid: str, batch: Batch):
-    '''
-    for qty in batch.quantities_per_order(orderid):
-        batch.deallocate(OrderLine(orderid, batch.sku, qty))
-    '''
-    raise NotImplementedError
+def deallocate(orderid: str, batches: List[Batch]):
+    for b in batches:
+        b.deallocate_for_order(orderid)
 
 
 @dataclass(unsafe_hash=True)
@@ -58,6 +55,9 @@ class Batch:
     def is_allocated_for_line(self, line: OrderLine):
         return line in self._allocations
 
+    # can be optimized by those insane ideas that i had before...
+    def deallocate_for_order(self, orderid):
+        self._allocations = set(orderline for orderline in self._allocations if orderline.orderid != orderid)
     @property
     def allocated_quantity(self) -> int:
         return sum(line.qty for line in self._allocations)
