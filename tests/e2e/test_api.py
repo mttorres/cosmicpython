@@ -82,10 +82,11 @@ def test_deallocate(add_stock):
         },
     )
     assert r.ok
+    assert r.json()["deallocated_batches"] == [batch]
 
     # now we can allocate second order
     r = requests.post(
         f"{url}/allocate", json={"orderid": order2, "sku": sku, "qty": 100}
     )
     assert r.ok
-    assert r.json()["batchid"] == batch
+    assert r.json()["batchref"] == batch
