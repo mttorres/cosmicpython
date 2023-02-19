@@ -55,7 +55,7 @@ def test_returns_deallocation():
     assert "b2" not in results
 
 
-def test_deallocate_persists_decrements_to_available_quantity():
+def test_deallocate_persists_decrement_the_available_quantity():
     repo = FakeRepository([])
     services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, FakeSession())
     line = model.OrderLine("o1", "BLUE-PLINTH", 10)

@@ -56,12 +56,14 @@ def test_is_allocated_for_false_if_order_not_allocated():
     batch = Batch("batch-001", "UNCOMFORTABLE-CHAIR", 100, eta=None)
     different_sku_line = OrderLine("order-123", "EXPENSIVE-TOASTER", 10)
     assert batch.is_allocated_for_line(different_sku_line) is False
+    assert batch.is_allocated_for_order(different_sku_line.orderid) is False
 
 
 def test_is_allocated_for_true_if_order_is_allocated():
     batch, line = create_sample_batch_and_line("ANGULAR-DESK", 20, 2)
     batch.allocate(line)
     assert batch.is_allocated_for_line(line)
+    assert batch.is_allocated_for_order(line.orderid)
 
 
 def test_can_deallocate_only_allocated_lines():
