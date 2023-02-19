@@ -17,12 +17,11 @@ app = Flask(__name__)
 def allocate_endpoint():
     db_session = get_session()
     repo = repository.SqlAlchemyRepository(db_session)
-    line = model.OrderLine(
-        request.json["orderid"], request.json["sku"], request.json["qty"],
-    )
 
     try:
-        batchref = services.allocate(line, repo, db_session)
+        batchref = services.allocate(
+            request.json["orderid"], request.json["sku"], request.json["qty"], repo, db_session
+        )
     except (model.OutOfStock, services.InvalidSku) as e:
         return {"message": str(e)}, 400
 
@@ -32,12 +31,7 @@ def allocate_endpoint():
 @app.route("/deallocate", methods=["POST"])
 def deallocate_endpoint():
     db_session = get_session()
-    batches = repository.SqlAlchemyRepository(db_session).get_by_orderid_and_sku(
-        request.json["orderid"], request.json["sku"]
-    )
-
-    deallocated_batches = model.deallocate(request.json["orderid"], batches)
-
-    db_session.commit()
-
-    return {"deallocated_batches": deallocated_batches}, 200
+    repo = repository.SqlAlchemyRepository(db_session)
+    return {"deallocated_batches": services.deallocate(
+        request.json["orderid"], request.json["sku"], repo, db_session
+    )}, 200

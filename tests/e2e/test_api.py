@@ -75,14 +75,18 @@ def test_deallocate(add_stock):
 
     # deallocate
     r = requests.post(
-        f"{url}/deallocate",
-        json={
-            "orderid": order1,
-            "sku": sku,
-        },
+        f"{url}/deallocate", json={"orderid": order1, "sku": sku,},
     )
     assert r.ok
     assert r.json()["deallocated_batches"] == [batch]
+
+    # deallocate again (the "unhappy path" is practically the same
+    r = requests.post(
+        f"{url}/deallocate", json={"orderid": order1, "sku": sku,},
+    )
+
+    assert r.ok
+    assert r.json()["deallocated_batches"] == []
 
     # now we can allocate second order
     r = requests.post(
