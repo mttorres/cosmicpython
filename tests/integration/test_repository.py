@@ -78,7 +78,7 @@ def test_repository_can_retrieve_a_batch_by_specific_order_line(session):
     util_insert_allocation(session, orderline_id, batch1_id)
 
     repo = repository.SqlAlchemyRepository(session)
-    retrieved = repo.get_by_orderid_and_sku("order1", "GENERIC-SOFA")
+    retrieved = repo.get_by_orderid_and_sku("order1", "GENERIC-SOFA")[0]
 
     expected = model.Batch("batch1", "GENERIC-SOFA", 100, eta=None)
     assert retrieved == expected
@@ -99,4 +99,4 @@ def test_repository_cant_retrieve_a_batch_by_inexistent_order_line(session):
     repo = repository.SqlAlchemyRepository(session)
     retrieved = repo.get_by_orderid_and_sku("order2", "GENERIC-SOFA")
 
-    assert retrieved is None
+    assert retrieved == []
