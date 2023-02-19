@@ -20,7 +20,7 @@ def test_returns_allocation():
     batch = model.Batch("b1", "COMPLICATED-LAMP", 100, eta=None)
     repo = FakeRepository([batch])
 
-    result = services.allocate(line, repo, FakeSession())
+    result = services.allocate(line.orderid, line.sku, line.qty, repo, FakeSession())
     assert result == "b1"
 
 
@@ -30,7 +30,7 @@ def test_error_for_invalid_sku():
     repo = FakeRepository([batch])
 
     with pytest.raises(services.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
-        services.allocate(line, repo, FakeSession())
+        services.allocate(line.orderid, line.sku, line.qty, repo, FakeSession())
 
 
 def test_commits():
@@ -39,7 +39,7 @@ def test_commits():
     repo = FakeRepository([batch])
     session = FakeSession()
 
-    services.allocate(line, repo, session)
+    services.allocate(line.orderid, line.sku, line.qty, repo, session)
     assert session.committed is True
 
 
@@ -48,7 +48,7 @@ def test_returns_deallocation():
     batch = model.Batch("b1", "COMPLICATED-LAMP", 100, eta=None)
     non_allocated_batch = model.Batch("b2", "COMPLICATED-LAMP", 100, eta=date.today())
     repo = FakeRepository([batch, non_allocated_batch])
-    services.allocate(line, repo, FakeSession())
+    services.allocate(line.orderid, line.sku, line.qty, repo, FakeSession())
 
     results = services.deallocate(line.orderid, line.sku, repo, FakeSession())
     assert "b1" in results
@@ -59,7 +59,7 @@ def test_deallocate_persists_decrement_the_available_quantity():
     repo = FakeRepository([])
     services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, FakeSession())
     line = model.OrderLine("o1", "BLUE-PLINTH", 10)
-    services.allocate(line, repo, FakeSession())
+    services.allocate(line.orderid, line.sku, line.qty, repo, FakeSession())
 
     batch = repo.get(reference="b1")
     assert batch.available_quantity == 90
@@ -71,7 +71,7 @@ def test_deallocate_decrements_correct_quantity():
     repo = FakeRepository([])
     services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, FakeSession())
     line = model.OrderLine("o1", "BLUE-PLINTH", 10)
-    services.allocate(line, repo, FakeSession())
+    services.allocate(line.orderid, line.sku, line.qty, repo, FakeSession())
     batch = repo.get(reference="b1")
     services.add_batch("b2", "RED-PLINTH", 100, None, repo, FakeSession())
     other_batch = repo.get(reference="b2")
