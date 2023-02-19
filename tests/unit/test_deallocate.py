@@ -8,10 +8,13 @@ def test_deallocating_for_a_orderid_clear_all_orderlines():
     line2 = OrderLine("oref", "RETRO-CLOCK", 3)
     batch.allocate(line1)
     batch.allocate(line2)
+    assert batch.available_quantity == 87
 
     deallocate("oref", [batch, batch_non_allocated])
 
     assert batch.is_allocated_for_line(line1) is False
     assert batch.is_allocated_for_line(line2) is False
+    assert batch.available_quantity == 100
     assert batch_non_allocated.is_allocated_for_line(line1) is False
     assert batch_non_allocated.is_allocated_for_line(line2) is False
+    assert batch_non_allocated.available_quantity == 100

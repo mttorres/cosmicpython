@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 
 from src.allocation.domain import model
@@ -41,22 +43,41 @@ def test_commits():
     assert session.committed is True
 
 
-def test_deallocate_decrements_available_quantity():
-    repo, session = FakeRepository([]), FakeSession()
-    # TODO: you'll need to implement the services.add_batch method
-    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, session)
+def test_returns_deallocation():
+    line = model.OrderLine("o1", "COMPLICATED-LAMP", 10)
+    batch = model.Batch("b1", "COMPLICATED-LAMP", 100, eta=None)
+    non_allocated_batch = model.Batch("b2", "COMPLICATED-LAMP", 100, eta=date.today())
+    repo = FakeRepository([batch, non_allocated_batch])
+    services.allocate(line, repo, FakeSession())
+
+    results = services.deallocate(line.orderid, line.sku, repo, FakeSession())
+    assert "b1" in results
+    assert "b2" not in results
+
+
+def test_deallocate_persists_decrements_to_available_quantity():
+    repo = FakeRepository([])
+    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, FakeSession())
     line = model.OrderLine("o1", "BLUE-PLINTH", 10)
-    services.allocate(line, repo, session)
+    services.allocate(line, repo, FakeSession())
+
     batch = repo.get(reference="b1")
     assert batch.available_quantity == 90
-    # services.deallocate(...
-    ...
+    services.deallocate("o1", "BLUE-PLINTH", repo, FakeSession())
     assert batch.available_quantity == 100
 
 
 def test_deallocate_decrements_correct_quantity():
-    pytest.fail("TODO - check that we decrement the right sku")
+    repo = FakeRepository([])
+    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, FakeSession())
+    line = model.OrderLine("o1", "BLUE-PLINTH", 10)
+    services.allocate(line, repo, FakeSession())
+    batch = repo.get(reference="b1")
+    services.add_batch("b2", "RED-PLINTH", 100, None, repo, FakeSession())
+    other_batch = repo.get(reference="b2")
 
-
-def test_trying_to_deallocate_unallocated_batch():
-    pytest.fail("TODO: should this error or pass silently? up to you.")
+    assert batch.available_quantity == 90
+    assert other_batch.available_quantity == 100
+    services.deallocate("o1", "BLUE-PLINTH", repo, FakeSession())
+    assert batch.available_quantity == 100
+    assert other_batch.available_quantity == 100
