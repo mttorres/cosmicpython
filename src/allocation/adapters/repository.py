@@ -29,11 +29,10 @@ class SqlAlchemyRepository(AbstractRepository):
         return self.session.query(model.Batch).all()
 
     def get_by_orderid_and_sku(self, orderid, sku):
-        # temp
-        for b in (b for b in sorted(self.session.query(model.Batch).filter_by(sku=sku).all()) if
-                  b.is_allocated_for(orderid)):
-            return b
-        return None
+        # temp (should be filtered on the DB but the N:N join table is making things messy...)
+        return sorted(b for b in self.session.query(model.Batch).filter_by(sku=sku).all()
+                      if b.is_allocated_for_order(orderid)
+                      )
 
 
 class FakeRepository(AbstractRepository):
@@ -49,3 +48,6 @@ class FakeRepository(AbstractRepository):
 
     def list(self):
         return list(self._batches)
+
+    def get_by_orderid_and_sku(self, orderid, sku):
+        return list(b for b in self._batches if b.sku == sku and b.is_allocated_for_order(orderid))

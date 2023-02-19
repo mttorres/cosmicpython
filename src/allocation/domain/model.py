@@ -8,10 +8,6 @@ class OutOfStock(Exception):
     pass
 
 
-class NotAllocated(Exception):
-    pass
-
-
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
     try:
         batch = next(b for b in sorted(batches) if b.can_allocate(line))
@@ -22,8 +18,12 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
 
 
 def deallocate(orderid: str, batches: List[Batch]):
+    batch_refs_deallocated = []
     for b in batches:
-        b.deallocate_for_order(orderid)
+        if b.deallocate_for_order(orderid):
+            batch_refs_deallocated.append(b.reference)
+
+    return batch_refs_deallocated
 
 
 @dataclass(unsafe_hash=True)
@@ -55,9 +55,15 @@ class Batch:
     def is_allocated_for_line(self, line: OrderLine):
         return line in self._allocations
 
+    def is_allocated_for_order(self, orderid: str):
+        return len([line for line in self._allocations if line.orderid == orderid]) > 0
+
     # can be optimized by those insane ideas that i had before...
-    def deallocate_for_order(self, orderid):
+    def deallocate_for_order(self, orderid) -> bool:
+        prevsize = len(self._allocations)
         self._allocations = set(orderline for orderline in self._allocations if orderline.orderid != orderid)
+        return prevsize > len(self._allocations)
+
     @property
     def allocated_quantity(self) -> int:
         return sum(line.qty for line in self._allocations)
