@@ -1,8 +1,27 @@
 from datetime import date, timedelta
 import pytest
 
-from src.allocation.adapters.repository import FakeRepository
+from src.allocation.adapters.repository import AbstractRepository
 from src.allocation.service_layer import services
+
+
+class FakeRepository(AbstractRepository):
+
+    def __init__(self, batches):
+        self._batches = set(batches)
+
+    def add(self, batch):
+        self._batches.add(batch)
+
+    def get(self, reference):
+        return next(b for b in self._batches if b.reference == reference)
+
+    def list(self):
+        return list(self._batches)
+
+    def get_by_orderid_and_sku(self, orderid, sku):
+        return list(b for b in self._batches if b.sku == sku and b.is_allocated_for_order(orderid))
+
 
 
 # spy?
