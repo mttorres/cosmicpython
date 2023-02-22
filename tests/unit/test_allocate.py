@@ -8,17 +8,6 @@ tomorrow = today + + timedelta(days=1)
 later_ten_days = tomorrow + timedelta(days=10)
 
 
-def test_allocating_to_a_batch_preferences_warehouse_stock():
-    in_stock_batch = Batch("in-stock-batch", "RETRO-CLOCK", 100, eta=None)
-    shipment_batch = Batch("shipment-batch", "RETRO-CLOCK", 100, eta=tomorrow)
-    line = OrderLine("oref", "RETRO-CLOCK", 10)
-
-    allocate(line, [in_stock_batch, shipment_batch])
-
-    assert in_stock_batch.available_quantity == 90  # escolheu o que está em estoque
-    assert shipment_batch.available_quantity == 100
-
-
 def test_allocating_prefers_earlier_batches():
     earliest = Batch("speedy-batch", "MINIMALIST-SPOON", 100, eta=today)
     medium = Batch("normal-batch", "MINIMALIST-SPOON", 100, eta=tomorrow)

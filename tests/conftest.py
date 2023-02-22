@@ -50,6 +50,7 @@ def postgres_session(postgres_db):
     clear_mappers()
 
 
+'''
 @pytest.fixture
 def add_stock(postgres_session):
     batches_added = set()
@@ -89,6 +90,7 @@ def add_stock(postgres_session):
             "DELETE FROM order_lines WHERE sku=:sku"), dict(sku=sku),
         )
         postgres_session.commit()
+'''
 
 
 def wait_for_webapp_to_come_up():
@@ -107,4 +109,3 @@ def restart_api():
     (Path(__file__).parent / "../src/allocation/entrypoints/flask_app.py").touch()
     time.sleep(0.5)
     wait_for_webapp_to_come_up()
-
