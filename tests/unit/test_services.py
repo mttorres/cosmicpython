@@ -65,6 +65,7 @@ def test_commits():
     services.allocate("o1", "OMINOUS-MIRROR", 10, uow)
     assert uow.committed is True
 
+
 def test_returns_deallocation():
     uow = FakeUnitOfWork()
     # allocated batch
@@ -93,9 +94,9 @@ def test_deallocate_decrements_correct_quantity():
     uow = FakeUnitOfWork()
     services.add_batch("b1", "BLUE-PLINTH", 100, None, uow)
     services.allocate("o1", "BLUE-PLINTH", 10, uow)
-    batch = repo.get(reference="b1")
+    batch = uow.batches.get(reference="b1")
     services.add_batch("b2", "RED-PLINTH", 100, None, uow)
-    other_batch = repo.get(reference="b2")
+    other_batch = uow.batches.get(reference="b2")
 
     assert batch.available_quantity == 90
     assert other_batch.available_quantity == 100
