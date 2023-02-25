@@ -1,21 +1,26 @@
 # pylint: disable=protected-access
+from sqlalchemy.sql import text
+
+from src.allocation.service_layer import unit_of_work
+from src.allocation.domain import model
+
 
 def insert_batch(session, ref, sku, qty, eta):
-    session.execute(
+    session.execute(text(
         "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
-        " VALUES (:ref, :sku, :qty, :eta)",
+        " VALUES (:ref, :sku, :qty, :eta)"),
         dict(ref=ref, sku=sku, qty=qty, eta=eta),
     )
 
 
 def get_allocated_batch_ref(session, orderid, sku):
-    [[orderlineid]] = session.execute(
-        "SELECT id FROM order_lines WHERE orderid=:orderid AND sku=:sku",
+    [[orderlineid]] = session.execute(text(
+        "SELECT id FROM order_lines WHERE orderid=:orderid AND sku=:sku"),
         dict(orderid=orderid, sku=sku),
     )
-    [[batchref]] = session.execute(
+    [[batchref]] = session.execute(text(
         "SELECT b.reference FROM allocations JOIN batches AS b ON batch_id = b.id"
-        " WHERE orderline_id=:orderlineid",
+        " WHERE orderline_id=:orderlineid"),
         dict(orderlineid=orderlineid),
     )
     return batchref
