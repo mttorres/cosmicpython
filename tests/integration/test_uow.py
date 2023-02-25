@@ -49,7 +49,7 @@ def test_rolls_back_uncommitted_work_by_default(session_factory):
         insert_batch(uow.session, "batch1", "MEDIUM-PLINTH", 100, None)
 
     new_session = session_factory()
-    rows = list(new_session.execute('SELECT * FROM "batches"'))
+    rows = list(new_session.execute(text('SELECT * FROM "batches"')))
     assert rows == []
 
 
@@ -64,5 +64,5 @@ def test_rolls_back_on_error(session_factory):
             raise MyException()
 
     new_session = session_factory()
-    rows = list(new_session.execute('SELECT * FROM "batches"'))
+    rows = list(new_session.execute(text('SELECT * FROM "batches"')))
     assert rows == []
