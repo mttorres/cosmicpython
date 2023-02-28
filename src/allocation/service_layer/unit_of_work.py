@@ -7,7 +7,7 @@ from src.allocation.adapters import repository
 
 
 class AbstractUnitOfWork(abc.ABC):
-    batches: repository.AbstractRepository
+    batches: repository.AbstractBatchRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         return self
@@ -37,7 +37,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self):
         self.session = self.session_factory()
-        self.batches = repository.SqlAlchemyRepository(self.session)
+        self.batches = repository.SqlAlchemyBatchRepository(self.session)
         return super().__enter__()
 
     def __exit(self, *args):
