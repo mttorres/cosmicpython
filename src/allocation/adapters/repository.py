@@ -4,6 +4,14 @@ from src.allocation.domain import model
 
 # Due to python is ducktype (Protocols: Structural subtyping (static duck typing))
 # We don't need ABC's, we only use it for educational reasons and to make explicit.
+class AbstractProductRepository(abc.ABC):
+    @abc.abstractmethod
+    def add(self, product):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get(self, sku) -> model.Product:
+        raise NotImplementedError
 
 
 class AbstractBatchRepository(abc.ABC):
