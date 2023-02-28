@@ -24,7 +24,7 @@ class AbstractUnitOfWork(abc.ABC):
         raise NotImplementedError
 
 class AbstractUnitOfWork(abc.ABC):
-    batches: repository.AbstractProductRepository
+    products: repository.AbstractProductRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         return self
