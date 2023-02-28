@@ -23,6 +23,23 @@ class AbstractUnitOfWork(abc.ABC):
     def rollback(self):
         raise NotImplementedError
 
+class AbstractUnitOfWork(abc.ABC):
+    batches: repository.AbstractProductRepository
+
+    def __enter__(self) -> AbstractUnitOfWork:
+        return self
+
+    def __exit__(self, *args):
+        self.rollback()
+
+    @abc.abstractmethod
+    def commit(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def rollback(self):
+        raise NotImplementedError
+
 
 DEFAULT_SESSION_FACTORY = sessionmaker(
     bind=create_engine(
