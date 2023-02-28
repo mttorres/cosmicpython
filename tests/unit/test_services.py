@@ -1,12 +1,12 @@
 from datetime import date, timedelta
 import pytest
 
-from src.allocation.adapters.repository import AbstractRepository
+from src.allocation.adapters.repository import AbstractBatchRepository
 from src.allocation.service_layer import unit_of_work
 from src.allocation.service_layer import services
 
 
-class FakeRepository(AbstractRepository):
+class FakeBatchRepository(AbstractBatchRepository):
 
     def __init__(self, batches):
         self._batches = set(batches)
@@ -27,7 +27,7 @@ class FakeRepository(AbstractRepository):
 # spy?
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self):
-        self.batches = FakeRepository([])
+        self.batches = FakeBatchRepository([])
         self.committed = False
 
     def commit(self):

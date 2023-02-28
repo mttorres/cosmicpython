@@ -1,11 +1,12 @@
 import abc
-from sqlalchemy.sql import text
 from src.allocation.domain import model
 
 
 # Due to python is ducktype (Protocols: Structural subtyping (static duck typing))
 # We don't need ABC's, we only use it for educational reasons and to make explicit.
-class AbstractRepository(abc.ABC):
+
+
+class AbstractBatchRepository(abc.ABC):
     @abc.abstractmethod
     def add(self, batch: model.Batch):
         raise NotImplementedError
@@ -15,7 +16,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError
 
 
-class SqlAlchemyRepository(AbstractRepository):
+class SqlAlchemyBatchRepository(AbstractBatchRepository):
     def __init__(self, session):
         self.session = session
 

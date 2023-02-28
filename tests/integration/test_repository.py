@@ -7,7 +7,7 @@ from src.allocation.adapters import repository
 def test_repository_can_save_a_batch(session):
     batch = model.Batch("batch1", "RUSTY-SOAPDISH", 100, eta=None)
 
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SqlAlchemyBatchRepository(session)
     repo.add(batch)
     session.commit()  # não deveria ser parte do método add? (deixar o commit como responsabilidade externa me parece ruim
 
@@ -58,7 +58,7 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     util_insert_batch(session, "batch2")
     util_insert_allocation(session, orderline_id, batch1_id)
 
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SqlAlchemyBatchRepository(session)
     retrieved = repo.get("batch1")
 
     expected = model.Batch("batch1", "GENERIC-SOFA", 100, eta=None)
@@ -77,7 +77,7 @@ def test_repository_can_retrieve_a_batch_by_specific_order_line(session):
     util_insert_batch(session, "batch3")
     util_insert_allocation(session, orderline_id, batch1_id)
 
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SqlAlchemyBatchRepository(session)
     retrieved = repo.get_by_orderid_and_sku("order1", "GENERIC-SOFA")[0]
 
     expected = model.Batch("batch1", "GENERIC-SOFA", 100, eta=None)
@@ -96,7 +96,7 @@ def test_repository_cant_retrieve_a_batch_by_inexistent_order_line(session):
     util_insert_batch(session, "batch3")
     util_insert_allocation(session, orderline_id, batch1_id)
 
-    repo = repository.SqlAlchemyRepository(session)
+    repo = repository.SqlAlchemyBatchRepository(session)
     retrieved = repo.get_by_orderid_and_sku("order2", "GENERIC-SOFA")
 
     assert retrieved == []
