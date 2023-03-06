@@ -8,6 +8,10 @@ class OutOfStock(Exception):
     pass
 
 
+class SkuMismatch(Exception):
+    pass
+
+
 def allocate(line: OrderLine, batches: List[Batch]) -> str:
     try:
         batch = next(b for b in sorted(batches) if b.can_allocate(line))
@@ -27,19 +31,39 @@ def deallocate(orderid: str, batches: List[Batch]):
 
 
 class Product:
-    def __init__(self, sku: str, batches: List[Batch], version_number: int = 0):
+    def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_number: int = 0):
         self.sku = sku
-        self.batches = batches
+        self._batches = batches
         self.version_number = version_number
 
     def allocate(self, line: OrderLine) -> str:
         try:
-            batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
+            batch = next(b for b in sorted(self._batches) if b.can_allocate(line))
             batch.allocate(line)
             self.version_number += 1
             return batch.reference
         except StopIteration:
             raise OutOfStock(f"Out of stock for sku {line.sku}")
+
+    def add_stock(self, batch: Batch):
+        if self.sku != batch.sku:
+            raise SkuMismatch(f"{batch.sku} sku mismatch with Product!")
+
+        if self._batches is None:
+            self._batches = [batch]
+        else:
+            self._batches.append(batch)
+
+    def deallocate(self, orderid: str):
+        batch_refs_deallocated = []
+        for b in self._batches:
+            if b.deallocate_for_order(orderid):
+                batch_refs_deallocated.append(b.reference)
+        return batch_refs_deallocated
+
+    @property
+    def available_quantity(self) -> int:
+        return sum(line.available_quantity for line in self._batches)
 
 
 @dataclass(unsafe_hash=True)
@@ -74,7 +98,8 @@ class Batch:
     def is_allocated_for_order(self, orderid: str):
         return len([line for line in self._allocations if line.orderid == orderid]) > 0
 
-    # can be optimized by those insane ideas that i had before...
+    # can be optimized by those insane ideas that i had before... but that would have to be persisted
+    # otherwise, the aux datastructure could be at in-memory concurrency mercy...?
     def deallocate_for_order(self, orderid) -> bool:
         prevsize = len(self._allocations)
         self._allocations = set(orderline for orderline in self._allocations if orderline.orderid != orderid)
