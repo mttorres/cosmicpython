@@ -34,7 +34,7 @@ def test_raises_sku_mismatch_exception_if_cannot_stock():
     product = Product('GAMER-MAGAZINE')
     batch_to_stock = Batch('batch-001', 'G-MAGAZINE', 20, eta=None)
 
-    with pytest.raises(SkuMismatch, match="SMALL-FORK"):
+    with pytest.raises(SkuMismatch, match="G-MAGAZINE"):
         product.add_stock(batch_to_stock)
 
 
