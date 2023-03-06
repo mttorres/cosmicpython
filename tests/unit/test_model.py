@@ -92,7 +92,7 @@ def test_can_deallocate_only_allocated_lines():
         Batch("batch-001", 'DECORATIVE-TRINKET', 20, eta=None),
         Batch("batch-002", 'DECORATIVE-TRINKET', 20, eta=date.today())
     ])
-    product.deallocate(unallocated_line)
+    product.deallocate(unallocated_line.orderid)
     assert product.available_quantity == 40
 
 
