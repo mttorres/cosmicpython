@@ -41,6 +41,10 @@ class Product:
         for b in self._batches:
             if b.deallocate_for_order(orderid):
                 batch_refs_deallocated.append(b.reference)
+
+        if len(batch_refs_deallocated) > 0:
+            self.version_number += 1
+
         return batch_refs_deallocated
 
     @property
