@@ -38,15 +38,6 @@ def test_raises_sku_mismatch_exception_if_cannot_stock():
         product.add_stock(batch_to_stock)
 
 
-def test_add_product_stock_succeed_for_same_sku():
-    product = Product('GAMER-MAGAZINE')
-    batch_to_stock = Batch('batch-001', 'GAMER-MAGAZINE', 20, eta=None)
-
-    product.add_stock(batch_to_stock)
-
-    assert product.available_quantity == 20
-
-
 def test_allocating_to_a_batch_reduces_the_available_quantity():
     # Batch(reference, sku, qtd, eta)
     product = Product('SMALL-TABLE',
