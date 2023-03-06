@@ -110,3 +110,6 @@ class Batch:
     def __hash__(self):
         # note: it would be best if reference was read-only
         return hash(self.reference)
+
+    def __repr__(self):
+        return f"<Batch {self.reference}>"
