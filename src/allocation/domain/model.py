@@ -12,24 +12,6 @@ class SkuMismatch(Exception):
     pass
 
 
-def allocate(line: OrderLine, batches: List[Batch]) -> str:
-    try:
-        batch = next(b for b in sorted(batches) if b.can_allocate(line))
-        batch.allocate(line)
-        return batch.reference
-    except StopIteration:
-        raise OutOfStock(f"Out of stock for sku {line.sku}")
-
-
-def deallocate(orderid: str, batches: List[Batch]):
-    batch_refs_deallocated = []
-    for b in batches:
-        if b.deallocate_for_order(orderid):
-            batch_refs_deallocated.append(b.reference)
-
-    return batch_refs_deallocated
-
-
 class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_number: int = 0):
         self.sku = sku
