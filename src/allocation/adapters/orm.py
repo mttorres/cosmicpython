@@ -25,6 +25,15 @@ batches = Table(
     Column("eta", Date, nullable=True),
 )
 
+version_number_column = Column("version_id_col", Integer, nullable=False)
+products = Table(
+    "products",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("sku", String(255)),
+    version_number_column
+)
+
 allocations = Table(
     "allocations",
     metadata,
@@ -33,10 +42,18 @@ allocations = Table(
     Column("batch_id", ForeignKey("batches.id")),
 )
 
+stocks = Table(
+    "stocks",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("product_id", ForeignKey("products.id")),
+    Column("batch_id", ForeignKey("batches.id")),
+)
+
 
 def start_mappers():
     lines_mapper = mapper_registry.map_imperatively(model.OrderLine, order_lines)
-    mapper_registry.map_imperatively(
+    batches_mapper = mapper_registry.map_imperatively(
         model.Batch,
         batches,
         properties={
@@ -45,3 +62,16 @@ def start_mappers():
             )
         },
     )
+
+    mapper_registry.map_imperatively(
+        model.Product,
+        products,
+        properties={
+            "_batches": relationship(
+                batches_mapper, secondary=stocks, collection_class=list,
+            ),
+            "version_id_col": version_number_column
+        },
+    )
+
+

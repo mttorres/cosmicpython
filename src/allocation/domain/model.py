@@ -13,16 +13,16 @@ class SkuMismatch(Exception):
 
 
 class Product:
-    def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_number: int = 0):
+    def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_id_col: int = 0):
         self.sku = sku
-        self._batches = batches
-        self.version_number = version_number
+        self._batches = batches if batches else []
+        self.version_id_col = version_id_col
 
     def allocate(self, line: OrderLine) -> str:
         try:
             batch = next(b for b in sorted(self._batches) if b.can_allocate(line))
             batch.allocate(line)
-            self.version_number += 1
+            self.version_id_col += 1
             return batch.reference
         except StopIteration:
             raise OutOfStock(f"Out of stock for sku {line.sku}")
@@ -30,11 +30,8 @@ class Product:
     def add_stock(self, batch: Batch):
         if self.sku != batch.sku:
             raise SkuMismatch(f"{batch.sku} sku mismatch with Product!")
-
-        if self._batches is None:
-            self._batches = [batch]
-        else:
-            self._batches.append(batch)
+        self._batches.append(batch)
+        self.version_id_col += 1
 
     def deallocate(self, orderid: str):
         batch_refs_deallocated = []
@@ -43,13 +40,21 @@ class Product:
                 batch_refs_deallocated.append(b.reference)
 
         if len(batch_refs_deallocated) > 0:
-            self.version_number += 1
+            self.version_id_col += 1
 
         return batch_refs_deallocated
 
     @property
     def available_quantity(self) -> int:
         return sum(line.available_quantity for line in self._batches)
+
+    def __eq__(self, other):
+        if not isinstance(other, Product):
+            return False
+        return other.sku == self.sku
+
+    def __hash__(self):
+        return hash(self.sku)
 
 
 @dataclass(unsafe_hash=True)
