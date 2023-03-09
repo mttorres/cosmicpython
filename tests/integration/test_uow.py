@@ -13,7 +13,7 @@ from tests.random_refs import random_sku, random_batchref, random_orderid
 
 def insert_batch(session, ref, sku, qty, eta, product_version=1):
     session.execute(text(
-        "INSERT INTO products (sku, version_number) VALUES (:sku, :version)"),
+        "INSERT INTO products (sku, version_id_col) VALUES (:sku, :version)"),
         dict(sku=sku, version=product_version),
     )
 
@@ -50,20 +50,53 @@ def try_to_allocate(orderid, sku, exceptions):
         exceptions.append(e)
 
 
-def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
-    session = session_factory()
-    insert_batch(session, "batch1", "HIPSTER-WORKBENCH", 100, None)
-    session.commit()
-
-    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
-    with uow:
-        batch = uow.batches.get(reference="batch1")
-        line = model.OrderLine("o1", "HIPSTER-WORKBENCH", 10)
-        batch.allocate(line)
+def uow_add_batch(created_batch, created_product, session_factory):
+    with unit_of_work.SqlAlchemyUnitOfWork(session_factory) as uow:
+        created_product.add_stock(created_batch)
+        uow.products.add(created_product)
         uow.commit()
 
+
+def uow_allocate(session_factory, sku, line):
+    with unit_of_work.SqlAlchemyUnitOfWork(session_factory) as uow:
+        product = uow.products.get(sku=sku)
+        product.allocate(line)
+        uow.commit()
+
+
+def test_uow_can_add_a_batch(session_factory):
+    created_product = model.Product("HIPSTER-WORKBENCH")
+    created_batch = model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None)
+
+    uow_add_batch(created_batch, created_product, session_factory)
+
+    session = session_factory()
+    batches_rows = list(session.execute(text('SELECT * FROM "batches"')))
+    product_rows = list(session.execute(text('SELECT * FROM "products"')))
+    assert batches_rows[0] == created_batch
+    assert product_rows[0] == created_product
+
+
+def test_uow_can_retrieve_a_product_and_allocate_to_it(session_factory):
+    uow_add_batch(model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None),
+                  model.Product("HIPSTER-WORKBENCH"), session_factory)
+
+    uow_allocate(session_factory, "HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10))
+
+    session = session_factory()
     batchref = get_allocated_batch_ref(session, "o1", "HIPSTER-WORKBENCH")
     assert batchref == "batch1"
+
+
+def test_uow_can_retrieve_a_product_with_allocations(session_factory):
+    uow_add_batch(model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None),
+                  model.Product("HIPSTER-WORKBENCH"), session_factory)
+
+    uow_allocate(session_factory, "HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10))
+
+    session = session_factory()
+    product_with_alllocation = session.query(model.Product).filter_by(sku="HIPSTER-WORKBENCH").one()
+    assert product_with_alllocation.is_allocated_for_line(model.OrderLine("o1", "HIPSTER-WORKBENCH", 10))
 
 
 def test_rolls_back_uncommitted_work_by_default(session_factory):
@@ -72,8 +105,10 @@ def test_rolls_back_uncommitted_work_by_default(session_factory):
         insert_batch(uow.session, "batch1", "MEDIUM-PLINTH", 100, None)
 
     new_session = session_factory()
-    rows = list(new_session.execute(text('SELECT * FROM "batches"')))
-    assert rows == []
+    batches_rows = list(new_session.execute(text('SELECT * FROM "batches"')))
+    product_rows = list(new_session.execute(text('SELECT * FROM "products"')))
+    assert batches_rows == []
+    assert product_rows == []
 
 
 def test_rolls_back_on_error(session_factory):
@@ -87,8 +122,10 @@ def test_rolls_back_on_error(session_factory):
             raise MyException()
 
     new_session = session_factory()
-    rows = list(new_session.execute(text('SELECT * FROM "batches"')))
-    assert rows == []
+    batches_rows = list(new_session.execute(text('SELECT * FROM "batches"')))
+    product_rows = list(new_session.execute(text('SELECT * FROM "products"')))
+    assert batches_rows == []
+    assert product_rows == []
 
 
 def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory):
@@ -100,8 +137,8 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
     order1, order2 = random_orderid(1), random_orderid(2)
     exceptions = []  # type: List[Exception]
     # https://stackoverflow.com/questions/25010167/e731-do-not-assign-a-lambda-expression-use-a-def
-    thread1 = threading.Thread(target=lambda: try_to_allocate(order1, sku, exceptions))  # (1)
-    thread2 = threading.Thread(target=lambda: try_to_allocate(order2, sku, exceptions))  # (1)
+    thread1 = threading.Thread(target=lambda: try_to_allocate(order1, sku, exceptions))
+    thread2 = threading.Thread(target=lambda: try_to_allocate(order2, sku, exceptions))
     thread1.start()
     thread2.start()
     thread1.join()
@@ -122,6 +159,4 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
         " WHERE order_lines.sku=:sku",
         dict(sku=sku),
     )
-    assert orders.rowcount == 1  # (4)
-    with unit_of_work.SqlAlchemyUnitOfWork() as uow:
-        uow.session.execute("select 1")
+    assert orders.rowcount == 1
