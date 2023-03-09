@@ -33,7 +33,7 @@ class Product:
         self._batches.append(batch)
         self.version_id_col += 1
 
-    def deallocate(self, orderid: str):
+    def deallocate(self, orderid: str) -> List[str]:
         batch_refs_deallocated = []
         for b in self._batches:
             if b.deallocate_for_order(orderid):
@@ -43,6 +43,12 @@ class Product:
             self.version_id_col += 1
 
         return batch_refs_deallocated
+
+    def is_allocated_for_line(self, line: OrderLine) -> bool:
+        return len([batch for batch in self._batches if batch.is_allocated_for_line(line)]) > 0
+
+    def is_allocated_for_order(self, orderid: str) -> bool:
+        return len([batch for batch in self._batches if batch.is_allocated_for_order(orderid)]) > 0
 
     @property
     def available_quantity(self) -> int:
