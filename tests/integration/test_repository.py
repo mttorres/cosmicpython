@@ -1,3 +1,5 @@
+# test removed as we are using uow as high gear
+'''
 from sqlalchemy.sql import text
 
 from src.allocation.domain import model
@@ -100,3 +102,4 @@ def test_repository_cant_retrieve_a_batch_by_inexistent_order_line(session):
     retrieved = repo.get_by_orderid_and_sku("order2", "GENERIC-SOFA")
 
     assert retrieved == []
+    '''
