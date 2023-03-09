@@ -50,14 +50,17 @@ def try_to_allocate(orderid, sku, exceptions):
         exceptions.append(e)
 
 
-def uow_add_batch(created_batch, created_product, session_factory):
+def uow_add_batch(sku, batchref, session_factory):
     with unit_of_work.SqlAlchemyUnitOfWork(session_factory) as uow:
+        created_product = model.Product(sku)
+        created_batch = model.Batch(batchref, sku, 100, None)
         created_product.add_stock(created_batch)
         uow.products.add(created_product)
         uow.commit()
+        return created_product, created_batch
 
 
-def uow_allocate(session_factory, sku, line):
+def uow_allocate(sku, line, session_factory):
     with unit_of_work.SqlAlchemyUnitOfWork(session_factory) as uow:
         product = uow.products.get(sku=sku)
         product.allocate(line)
@@ -65,23 +68,22 @@ def uow_allocate(session_factory, sku, line):
 
 
 def test_uow_can_add_a_batch(session_factory):
-    created_product = model.Product("HIPSTER-WORKBENCH")
-    created_batch = model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None)
+    expected_product = model.Product("HIPSTER-WORKBENCH")
+    expected_batch = model.Batch("batch1", expected_product.sku, 100, None)
 
-    uow_add_batch(created_batch, created_product, session_factory)
+    uow_add_batch(expected_product.sku, expected_batch.reference, session_factory)
 
     session = session_factory()
     batches_rows = list(session.execute(text('SELECT * FROM "batches"')))
     product_rows = list(session.execute(text('SELECT * FROM "products"')))
-    assert batches_rows[0] == created_batch
-    assert product_rows[0] == created_product
+    assert model.Batch(*batches_rows[0][1:]) == expected_batch
+    assert model.Product(*product_rows[0][1:-1]) == expected_product
 
 
 def test_uow_can_retrieve_a_product_and_allocate_to_it(session_factory):
-    uow_add_batch(model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None),
-                  model.Product("HIPSTER-WORKBENCH"), session_factory)
+    uow_add_batch("HIPSTER-WORKBENCH", "batch1", session_factory)
 
-    uow_allocate(session_factory, "HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10))
+    uow_allocate("HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10), session_factory)
 
     session = session_factory()
     batchref = get_allocated_batch_ref(session, "o1", "HIPSTER-WORKBENCH")
@@ -89,10 +91,9 @@ def test_uow_can_retrieve_a_product_and_allocate_to_it(session_factory):
 
 
 def test_uow_can_retrieve_a_product_with_allocations(session_factory):
-    uow_add_batch(model.Batch("batch1", "HIPSTER-WORKBENCH", 100, None),
-                  model.Product("HIPSTER-WORKBENCH"), session_factory)
+    uow_add_batch("HIPSTER-WORKBENCH", "batch1", session_factory)
 
-    uow_allocate(session_factory, "HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10))
+    uow_allocate("HIPSTER-WORKBENCH", model.OrderLine("o1", "HIPSTER-WORKBENCH", 10), session_factory)
 
     session = session_factory()
     product_with_alllocation = session.query(model.Product).filter_by(sku="HIPSTER-WORKBENCH").one()
