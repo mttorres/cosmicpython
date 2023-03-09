@@ -7,23 +7,6 @@ from src.allocation.adapters import repository
 
 
 class AbstractUnitOfWork(abc.ABC):
-    batches: repository.AbstractBatchRepository
-
-    def __enter__(self) -> AbstractUnitOfWork:
-        return self
-
-    def __exit__(self, *args):
-        self.rollback()
-
-    @abc.abstractmethod
-    def commit(self):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def rollback(self):
-        raise NotImplementedError
-
-class AbstractUnitOfWork(abc.ABC):
     products: repository.AbstractProductRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
@@ -55,7 +38,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self):
         self.session = self.session_factory()
-        self.batches = repository.SqlAlchemyBatchRepository(self.session)
+        self.products = repository.SqlAlchemyProductRepository(self.session)
         return super().__enter__()
 
     def __exit(self, *args):
