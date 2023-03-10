@@ -2,3 +2,5 @@ devenv
 .mypy_cache
 __pycache__
 *.egg-info
+lib
+lib64
