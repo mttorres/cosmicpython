@@ -68,14 +68,6 @@ def test_prefers_earlier_batches():
     assert product.available_quantity == 290
 
 
-def test_returns_allocated_batch_ref():
-    in_stock_batch = Batch("in-stock-batch-ref", "HIGHBROW-POSTER", 100, eta=None)
-    shipment_batch = Batch("shipment-batch-ref", "HIGHBROW-POSTER", 100, eta=tomorrow)
-    line = OrderLine("oref", "HIGHBROW-POSTER", 10)
-    product = Product(sku="HIGHBROW-POSTER", batches=[in_stock_batch, shipment_batch])
-    allocation = product.allocate(line)
-    assert allocation == in_stock_batch.reference
-
 
 def test_raises_out_of_stock_exception_if_cannot_allocate():
     batch = Batch("batch1", "SMALL-FORK", 10, eta=today)
@@ -84,25 +76,6 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
 
     with pytest.raises(OutOfStock, match="SMALL-FORK"):
         product.allocate(OrderLine("order2", "SMALL-FORK", 1))
-
-
-def test_returns_deallocated_batch_ref():
-    in_stock_batch = Batch("in-stock-batch-ref", "HIGHBROW-POSTER", 100, eta=None)
-    shipment_batch = Batch("shipment-batch-ref", "HIGHBROW-POSTER", 100, eta=tomorrow)
-    line = OrderLine("oref", "HIGHBROW-POSTER", 10)
-    product = Product(sku="HIGHBROW-POSTER", batches=[in_stock_batch, shipment_batch])
-    product.allocate(line)
-    dealocations = product.deallocate(line.orderid)
-    assert "in-stock-batch-ref" in dealocations
-
-
-def test_returns_empty_if_dealocate_not_allocated():
-    in_stock_batch = Batch("in-stock-batch-ref", "HIGHBROW-POSTER", 100, eta=None)
-    shipment_batch = Batch("shipment-batch-ref", "HIGHBROW-POSTER", 100, eta=tomorrow)
-    non_allocated_line = OrderLine("oref", "HIGHBROW-POSTER", 10)
-    product = Product(sku="HIGHBROW-POSTER", batches=[in_stock_batch, shipment_batch])
-    dealocations = product.deallocate(non_allocated_line.orderid)
-    assert dealocations == []
 
 
 @pytest.mark.skip

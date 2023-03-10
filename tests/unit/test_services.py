@@ -1,4 +1,6 @@
-from datetime import date, timedelta
+from datetime import date
+
+import pytest
 
 from src.allocation.adapters.repository import AbstractProductRepository
 from src.allocation.service_layer import unit_of_work
@@ -56,6 +58,14 @@ def test_returns_allocation():
     assert result == "b1"
 
 
+def test_allocate_errors_for_invalid_sku():
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", "AREALSKU", 100, None, uow)
+
+    with pytest.raises(services.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
+        services.allocate("o1", "NONEXISTENTSKU", 10, uow)
+
+
 def test_commits():
     uow_trans_1 = FakeUnitOfWork()
     services.add_batch("b1", "OMINOUS-MIRROR", 100, None, uow_trans_1)
@@ -80,6 +90,15 @@ def test_returns_deallocation():
     assert "b2" not in results
 
 
+def test_deallocation_returns_empty_if_not_allocated():
+    uow = FakeUnitOfWork()
+    # allocated batch for o1
+    services.add_batch("b1", "COMPLICATED-LAMP", 100, None, uow)
+
+    results = services.deallocate("o1", "COMPLICATED-LAMP", uow)
+    assert results == []
+
+
 def test_deallocate_persists_decrement_to_the_available_quantity():
     uow = FakeUnitOfWork()
     services.add_batch("b1", "BLUE-PLINTH", 100, None, uow)
@@ -89,6 +108,13 @@ def test_deallocate_persists_decrement_to_the_available_quantity():
     assert product.available_quantity == 90
     services.deallocate("o1", "BLUE-PLINTH", uow)
     assert product.available_quantity == 100
+
+
+def test_deallocate_errors_for_invalid_sku():
+    uow = FakeUnitOfWork()
+
+    with pytest.raises(services.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
+        services.allocate("o1", "NONEXISTENTSKU", 10, uow)
 
 
 def test_deallocating_for_a_orderid_clear_all_orderlines():
