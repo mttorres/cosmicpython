@@ -13,13 +13,9 @@ class InvalidSku(Exception):
     pass
 
 
-def is_valid_sku(sku, batches):
-    return sku in {b.sku for b in batches}
-
-
 def allocate(orderid: str, sku: str, qty: int, uow: AbstractUnitOfWork) -> str:
     line = model.OrderLine(
-       orderid, sku, qty
+        orderid, sku, qty
     )
     with uow:
         product = uow.products.get(sku=line.sku)
@@ -35,7 +31,7 @@ def deallocate(orderid: str, sku: str, uow: AbstractUnitOfWork) -> List[str]:
         product = uow.products.get(sku=sku)
         if product is None:
             raise InvalidSku(f"Invalid sku {sku}")
-        deallocated_batch_refs = product.deallocate(orderid, sku)
+        deallocated_batch_refs = product.deallocate(orderid)
         uow.commit()
     return deallocated_batch_refs
 
@@ -44,8 +40,8 @@ def add_batch(batchref: str, sku: str, qty: int, eta: Optional[date], uow: Abstr
     with uow:
         product = uow.products.get(sku=sku)
         if product is None:
-            product = model.Product(sku, batches=[])
+            product = model.Product(sku)
             uow.products.add(product)
-        product.batches.append(model.Batch(batchref, sku, qty, eta))
+        product.add_stock(model.Batch(batchref, sku, qty, eta))
         uow.commit()
     return batchref
