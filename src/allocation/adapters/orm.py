@@ -67,7 +67,7 @@ def start_mappers():
         model.Product,
         products,
         properties={
-            "_batches": relationship(
+            "batches": relationship(
                 batches_mapper, secondary=stocks, collection_class=list,
             ),
             "version_id_col": version_number_column
