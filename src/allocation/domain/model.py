@@ -11,12 +11,12 @@ class OutOfStock(Exception):
 class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_id_col: int = 0):
         self.sku = sku
-        self._batches = batches if batches else []
+        self.batches = batches if batches else []
         self.version_id_col = version_id_col
 
     def allocate(self, line: OrderLine) -> str:
         try:
-            batch = next(b for b in sorted(self._batches) if b.can_allocate(line))
+            batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
             batch.allocate(line)
             self.version_id_col += 1
             return batch.reference
@@ -24,12 +24,12 @@ class Product:
             raise OutOfStock(f"Out of stock for sku {line.sku}")
 
     def add_stock(self, batch: Batch):
-        self._batches.append(batch)
+        self.batches.append(batch)
         self.version_id_col += 1
 
     def deallocate(self, orderid: str) -> List[str]:
         batch_refs_deallocated = []
-        for b in self._batches:
+        for b in self.batches:
             if b.deallocate_for_order(orderid):
                 batch_refs_deallocated.append(b.reference)
 
@@ -39,14 +39,14 @@ class Product:
         return batch_refs_deallocated
 
     def is_allocated_for_line(self, line: OrderLine) -> bool:
-        return len([batch for batch in self._batches if batch.is_allocated_for_line(line)]) > 0
+        return len([batch for batch in self.batches if batch.is_allocated_for_line(line)]) > 0
 
     def is_allocated_for_order(self, orderid: str) -> bool:
-        return len([batch for batch in self._batches if batch.is_allocated_for_order(orderid)]) > 0
+        return len([batch for batch in self.batches if batch.is_allocated_for_order(orderid)]) > 0
 
     @property
     def available_quantity(self) -> int:
-        return sum(line.available_quantity for line in self._batches)
+        return sum(line.available_quantity for line in self.batches)
 
     def __eq__(self, other):
         if not isinstance(other, Product):
