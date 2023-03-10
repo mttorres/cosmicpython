@@ -1,5 +1,9 @@
+# test can be deleted (is tested in high gear on service layer) (will be only kept for educational purposes)
+'''
 from datetime import date, timedelta
 import pytest
+
+
 
 from src.allocation.domain.model import Batch, OrderLine, allocate, OutOfStock
 
@@ -37,3 +41,4 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
 
     with pytest.raises(OutOfStock, match="SMALL-FORK"):
         allocate(OrderLine("order2", "SMALL-FORK", 1), [batch])
+'''

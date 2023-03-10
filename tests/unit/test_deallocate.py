@@ -1,6 +1,6 @@
-from src.allocation.domain.model import Batch, OrderLine, deallocate
 
-
+# test can be deleted (is tested in high gear on service layer) (will be only kept for educational purposes)
+'''
 def test_deallocating_for_a_orderid_clear_all_orderlines():
     batch = Batch("in-stock-batch", "RETRO-CLOCK", 100, eta=None)
     batch_non_allocated = Batch("in-stock-batch", "RETRO-CLOCK", 100, eta=None)
@@ -18,3 +18,4 @@ def test_deallocating_for_a_orderid_clear_all_orderlines():
     assert batch_non_allocated.is_allocated_for_line(line1) is False
     assert batch_non_allocated.is_allocated_for_line(line2) is False
     assert batch_non_allocated.available_quantity == 100
+'''
