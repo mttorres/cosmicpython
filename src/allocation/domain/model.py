@@ -8,10 +8,6 @@ class OutOfStock(Exception):
     pass
 
 
-class SkuMismatch(Exception):
-    pass
-
-
 class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_id_col: int = 0):
         self.sku = sku
@@ -28,8 +24,6 @@ class Product:
             raise OutOfStock(f"Out of stock for sku {line.sku}")
 
     def add_stock(self, batch: Batch):
-        if self.sku != batch.sku:
-            raise SkuMismatch(f"{batch.sku} sku mismatch with Product!")
         self._batches.append(batch)
         self.version_id_col += 1
 
