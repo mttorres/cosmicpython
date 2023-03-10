@@ -68,7 +68,6 @@ def test_prefers_earlier_batches():
     assert product.available_quantity == 290
 
 
-
 def test_raises_out_of_stock_exception_if_cannot_allocate():
     batch = Batch("batch1", "SMALL-FORK", 10, eta=today)
     product = Product(sku="SMALL-FORK", batches=[batch])
@@ -78,12 +77,11 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
         product.allocate(OrderLine("order2", "SMALL-FORK", 1))
 
 
-@pytest.mark.skip
 def test_increments_version_number():
     line = OrderLine("oref", "SCANDI-PEN", 10)
     product = Product(
         sku="SCANDI-PEN", batches=[Batch("b1", "SCANDI-PEN", 100, eta=None)]
     )
-    product.version_number = 7
+    product.version_id_col = 7
     product.allocate(line)
-    assert product.version_number == 8
+    assert product.version_id_col == 8
