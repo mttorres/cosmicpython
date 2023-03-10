@@ -17,11 +17,30 @@ def insert_batch(session, ref, sku, qty, eta, product_version=1):
         dict(sku=sku, version=product_version),
     )
 
+    [[product_id]] = session.execute(
+        text('SELECT id FROM products WHERE sku=:sku'),
+        dict(ref=ref, sku=sku),
+    )
+
+
     session.execute(text(
         "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
         " VALUES (:ref, :sku, :qty, :eta)"),
         dict(ref=ref, sku=sku, qty=qty, eta=eta),
     )
+
+    [[batch_id]] = session.execute(
+        text('SELECT id FROM batches WHERE reference=:ref AND sku=:sku'),
+        dict(ref=ref, sku=sku),
+    )
+
+    session.execute(text(
+        "INSERT INTO stocks (product_id, batch_id)"
+        " VALUES (:pid, :bid)"),
+        dict(pid=product_id, bid=batch_id)
+    )
+
+    return product_id, batch_id
 
 
 def get_allocated_batch_ref(session, orderid, sku):
@@ -37,7 +56,7 @@ def get_allocated_batch_ref(session, orderid, sku):
     return batchref
 
 
-def try_to_allocate(orderid, sku, exceptions):
+def try_to_allocate(orderid, sku, num, exceptions):
     line = model.OrderLine(orderid, sku, 10)
     try:
         with unit_of_work.SqlAlchemyUnitOfWork() as uow:
@@ -47,6 +66,7 @@ def try_to_allocate(orderid, sku, exceptions):
             uow.commit()
     except Exception as e:
         print(traceback.format_exc())
+        print(f"Optimistic Concurrency failed for thread nº {num}")
         exceptions.append(e)
 
 
@@ -138,26 +158,26 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
     order1, order2 = random_orderid(1), random_orderid(2)
     exceptions = []  # type: List[Exception]
     # https://stackoverflow.com/questions/25010167/e731-do-not-assign-a-lambda-expression-use-a-def
-    thread1 = threading.Thread(target=lambda: try_to_allocate(order1, sku, exceptions))
-    thread2 = threading.Thread(target=lambda: try_to_allocate(order2, sku, exceptions))
+    thread1 = threading.Thread(target=lambda: try_to_allocate(order1, sku, 1, exceptions))
+    thread2 = threading.Thread(target=lambda: try_to_allocate(order2, sku, 2, exceptions))
     thread1.start()
     thread2.start()
     thread1.join()
     thread2.join()
 
-    [[version]] = session.execute(
-        "SELECT version_number FROM products WHERE sku=:sku",
+    [[version]] = session.execute(text(
+        "SELECT version_id_col FROM products WHERE sku=:sku"),
         dict(sku=sku),
     )
     assert version == 2
     [exception] = exceptions
     assert "could not serialize access due to concurrent update" in str(exception)
 
-    orders = session.execute(
+    orders = session.execute(text(
         "SELECT orderid FROM allocations"
         " JOIN batches ON allocations.batch_id = batches.id"
         " JOIN order_lines ON allocations.orderline_id = order_lines.id"
-        " WHERE order_lines.sku=:sku",
+        " WHERE order_lines.sku=:sku"),
         dict(sku=sku),
     )
     assert orders.rowcount == 1
