@@ -2,9 +2,11 @@ from datetime import date, timedelta
 
 import pytest
 
+
 # inicialmente esse statement vai estar comentado para o teste falhar
 # from model import ...
-from src.allocation.domain.model import Product, Batch, OrderLine, OutOfStock
+from src.allocation.domain.model import Product, Batch, OrderLine
+from src.allocation.domain import events
 
 '''
 "The name of our unit test describes the behavior that we want to see from the system, 
@@ -68,13 +70,14 @@ def test_prefers_earlier_batches():
     assert product.available_quantity == 290
 
 
-def test_raises_out_of_stock_exception_if_cannot_allocate():
+def test_raises_out_of_stock_event_if_cannot_allocate():
     batch = Batch("batch1", "SMALL-FORK", 10, eta=today)
     product = Product(sku="SMALL-FORK", batches=[batch])
     product.allocate(OrderLine("order1", "SMALL-FORK", 10))
 
-    with pytest.raises(OutOfStock, match="SMALL-FORK"):
-        product.allocate(OrderLine("order2", "SMALL-FORK", 1))
+    allocation = product.allocate(OrderLine("order2", "SMALL-FORK", 1))
+    assert product.events[-1] == events.OutOfStock(sku="SMAL-FORK")
+    assert allocation is None
 
 
 def test_increments_version_number():
