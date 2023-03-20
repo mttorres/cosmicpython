@@ -19,7 +19,6 @@ class AbstractUnitOfWork(abc.ABC):
     def commit(self):
         self._commit()
         self._publish_events()
-        raise NotImplementedError
 
     def _publish_events(self):
         for product in self.products.seen:
