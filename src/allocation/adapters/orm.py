@@ -1,4 +1,4 @@
-from sqlalchemy import Table, MetaData, Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Table, MetaData, Column, Integer, String, Date, ForeignKey, event
 from sqlalchemy.orm import registry, relationship
 
 from src.allocation.domain import model
@@ -75,3 +75,6 @@ def start_mappers():
     )
 
 
+@event.listens_for(model.Product, "load")
+def receive_load(product, _):
+    product.events = []
