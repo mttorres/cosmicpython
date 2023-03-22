@@ -13,7 +13,7 @@ from src.allocation.adapters.orm import metadata, start_mappers
 
 @pytest.fixture
 def in_memory_db():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", connect_args={'check_same_thread': False})
     metadata.create_all(engine)
     return engine
 
