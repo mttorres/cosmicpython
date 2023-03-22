@@ -21,7 +21,7 @@ class AbstractUnitOfWork(abc.ABC):
         self._publish_events()
 
     def _publish_events(self):
-        for product in self.products.seen:
+        for product in self.products.tracked:
             while product.events:
                 event = product.events.pop(0)
                 messagebus.handle(event)
