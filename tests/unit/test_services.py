@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from src.allocation.adapters.repository import AbstractProductRepository
+from src.allocation.adapters.repository import AbstractProductRepository, track_entity
 from src.allocation.service_layer import unit_of_work
 from src.allocation.service_layer import services
 
@@ -10,15 +10,18 @@ from src.allocation.service_layer import services
 class FakeProductRepository(AbstractProductRepository):
 
     def __init__(self, products):
-        super().__init__()
         self._products = set(products)
+        self.tracked = set()
 
-    def _add(self, product):
+    @track_entity
+    def add(self, product):
         self._products.add(product)
 
-    def _get(self, sku):
+    @track_entity
+    def get(self, sku: str):
         return next((p for p in self._products if p.sku == sku), None)
 
+    @track_entity
     def list(self):
         return list(self._products)
 
@@ -132,3 +135,7 @@ def test_deallocating_for_a_orderid_clear_all_orderlines():
 
     assert product.is_allocated_for_order("oref") is False
     assert product.available_quantity == 200
+
+
+def test_can_handle_events():
+    pytest.fail("Next chapter")

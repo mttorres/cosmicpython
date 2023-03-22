@@ -76,6 +76,7 @@ def uow_add_batch(sku, batchref, session_factory):
         created_batch = model.Batch(batchref, sku, 100, None)
         created_product.add_stock(created_batch)
         uow.products.add(created_product)
+        assert created_product in uow.products.tracked
         uow.commit()
         return created_product, created_batch
 
@@ -84,6 +85,7 @@ def uow_allocate(sku, line, session_factory):
     with unit_of_work.SqlAlchemyUnitOfWork(session_factory) as uow:
         product = uow.products.get(sku=sku)
         product.allocate(line)
+        assert product in uow.products.tracked
         uow.commit()
 
 
