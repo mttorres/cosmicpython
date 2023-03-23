@@ -1,7 +1,7 @@
 from datetime import date
 from typing import List, Optional
 
-from src.allocation.domain import model
+from src.allocation.domain import model, events
 from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork
 
 
@@ -13,9 +13,9 @@ class InvalidSku(Exception):
     pass
 
 
-def allocate(orderid: str, sku: str, qty: int, uow: AbstractUnitOfWork) -> str:
+def allocate(event: events.AllocationRequired, uow: AbstractUnitOfWork) -> str:
     line = model.OrderLine(
-        orderid, sku, qty
+        event.orderid, event.sku, event.qty
     )
     with uow:
         product = uow.products.get(sku=line.sku)
@@ -36,12 +36,19 @@ def deallocate(orderid: str, sku: str, uow: AbstractUnitOfWork) -> List[str]:
     return deallocated_batch_refs
 
 
-def add_batch(batchref: str, sku: str, qty: int, eta: Optional[date], uow: AbstractUnitOfWork):
+def add_batch(event: events.BatchCreated, uow: AbstractUnitOfWork):
     with uow:
-        product = uow.products.get(sku=sku)
+        product = uow.products.get(sku=event.sku)
         if product is None:
-            product = model.Product(sku)
+            product = model.Product(event.sku)
             uow.products.add(product)
-        product.add_stock(model.Batch(batchref, sku, qty, eta))
+        product.add_stock(model.Batch(event.ref, event.sku, event.qty, event.eta))
         uow.commit()
-    return batchref
+    return event.ref
+
+
+def send_out_of_stock_notification(event: events.OutOfStock):
+    email.send_mail(
+        "stock@made.com",
+        f"Out of stock for {event.sku}",
+    )
