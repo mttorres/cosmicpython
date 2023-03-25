@@ -25,6 +25,13 @@ class FakeProductRepository(AbstractProductRepository):
     def list(self):
         return list(self._products)
 
+    @track_entity
+    def get_by_batchref(self, batchref: str):
+        return next(
+            (p for p in self._products for b in p.batches if b.reference == batchref),
+            None
+        )
+
 
 # spy?
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):

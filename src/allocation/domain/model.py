@@ -44,6 +44,16 @@ class Product:
     def is_allocated_for_order(self, orderid: str) -> bool:
         return len([batch for batch in self.batches if batch.is_allocated_for_order(orderid)]) > 0
 
+    def change_batch_quantity(self, ref: str, qty: int):
+        # sanity check
+        batch = next(b for b in self.batches if b.reference == ref)
+        batch._purchased_quantity = qty
+        while batch.available_quantity < 0:
+            line = batch.deallocate_one()
+            self.events.append(
+                events.AllocationRequired(line.orderid, line.sku, line.qty)
+            )
+
     @property
     def available_quantity(self) -> int:
         return sum(line.available_quantity for line in self.batches)
@@ -95,6 +105,9 @@ class Batch:
         prevsize = len(self._allocations)
         self._allocations = set(orderline for orderline in self._allocations if orderline.orderid != orderid)
         return prevsize > len(self._allocations)
+
+    def deallocate_one(self) -> OrderLine:
+        return self._allocations.pop()
 
     @property
     def allocated_quantity(self) -> int:

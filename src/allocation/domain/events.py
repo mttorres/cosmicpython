@@ -27,3 +27,7 @@ class AllocationRequired(Event):
     qty: int
 
 
+@dataclass
+class BatchQuantityChanged(Event):
+    ref: str
+    qty: int

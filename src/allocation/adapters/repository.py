@@ -1,5 +1,7 @@
 import functools
 from typing import Set, Callable, Any, Iterable, Collection, Protocol
+
+from src.allocation.adapters import orm
 from src.allocation.domain import model
 
 
@@ -59,20 +61,11 @@ class SqlAlchemyProductRepository(AbstractProductRepository):
     def list(self) -> Collection[model.Product]:
         return self.session.query(model.Product).all()
 
-
-class TrackingProductRepository:
-    seen: Set[model.Product]
-
-    def __init__(self, repo: AbstractProductRepository):
-        self.seen = set()  # type: Set[model.Product]
-        self._repo = repo
-
-    def add(self, product: model.Product):
-        self._repo.add(product)
-        self.seen.add(product)
-
-    def get(self, sku) -> model.Product:
-        product = self._repo.get(sku)
-        if product:
-            self.seen.add(product)
-        return product
+    @track_entity
+    def get_by_batchref(self, batchref: str) -> model.Product:
+        return (
+            self.session.query(model.Product)
+            .join(model.Batch)
+            .filter(orm.batches.c.reference == batchref)
+            .first()
+        )
