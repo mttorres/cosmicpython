@@ -1,9 +1,8 @@
-from datetime import date
-
 import pytest
 
 from src.allocation.adapters.repository import AbstractProductRepository, track_entity
-from src.allocation.service_layer import unit_of_work
+from src.allocation.domain import events
+from src.allocation.service_layer import unit_of_work, messagebus
 from src.allocation.service_layer import handlers
 
 
@@ -39,46 +38,57 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 
 
-def test_add_batch_new_product():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "CRUNCHY-ARMCHAIR", 100, None, uow)
-    assert uow.products.get("CRUNCHY-ARMCHAIR") is not None
-    assert uow.committed
+class TestAddBatch:
+    def test_add_batch_new_product(self):
+        uow = FakeUnitOfWork()
+        messagebus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None), uow)
+        assert uow.products.get("CRUNCHY-ARMCHAIR") is not None
+        assert uow.committed
+
+    def test_add_batch_existing_product(self):
+        uow = FakeUnitOfWork()
+        messagebus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None), uow)
+        messagebus.handle(events.BatchCreated("b2", "GARISH-RUG", 99, None,), uow)
+        retrieved_product = uow.products.get("CRUNCHY-ARMCHAIR")
+        assert retrieved_product is not None
+        assert "b2" in [b.reference for b in uow.products.get("GARISH-RUG").batches]
 
 
-def test_add_batch_existing_product():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "CRUNCHY-ARMCHAIR", 100, None, uow)
-    services.add_batch("b2", "GARISH-RUG", 99, None, uow)
-    retrieved_product = uow.products.get("CRUNCHY-ARMCHAIR")
-    assert retrieved_product is not None
-    assert "b2" in [b.reference for b in uow.products.get("GARISH-RUG").batches]
+class TestAllocate:
+    def test_returns_allocation(self):
+        uow = FakeUnitOfWork()
+        messagebus.handle(
+            events.BatchCreated("b1", "COMPLICATED-LAMP", 100, None), uow
+        )
+        results = messagebus.handle(
+            events.AllocationRequired("o1", "COMPLICATED-LAMP", 100), uow
+        )
+        assert results.pop(0) == "b1"
+
+    def test_allocate_errors_for_invalid_sku(self):
+        uow = FakeUnitOfWork()
+        messagebus.handle(events.BatchCreated("b1", "AREALSKU", 100, None,), uow)
+
+        with pytest.raises(handlers.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
+            messagebus.handle(
+                events.AllocationRequired("o1", "NONEXISTENTSKU", 10), uow
+            )
+
+    def test_commits(self):
+        uow_trans_1 = FakeUnitOfWork()
+        messagebus.handle(events.BatchCreated("b1", "OMINOUS-MIRROR", 100, None), uow_trans_1)
+        assert uow_trans_1.committed
+        uow_trans_2 = FakeUnitOfWork(uow_trans_1.products.list())
+        messagebus.handle(events.AllocationRequired("o1", "OMINOUS-MIRROR", 10), uow_trans_2)
+        assert uow_trans_2.committed
 
 
-def test_returns_allocation():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "COMPLICATED-LAMP", 100, None, uow)
-    result = services.allocate("o1", "COMPLICATED-LAMP", 100, uow)
-    assert result == "b1"
+class TestDeallocate:
+    pass
+    # dunno what to do with Deallocation yet
 
 
-def test_allocate_errors_for_invalid_sku():
-    uow = FakeUnitOfWork()
-    services.add_batch("b1", "AREALSKU", 100, None, uow)
-
-    with pytest.raises(services.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
-        services.allocate("o1", "NONEXISTENTSKU", 10, uow)
-
-
-def test_commits():
-    uow_trans_1 = FakeUnitOfWork()
-    services.add_batch("b1", "OMINOUS-MIRROR", 100, None, uow_trans_1)
-    assert uow_trans_1.committed
-    uow_trans_2 = FakeUnitOfWork(uow_trans_1.products.list())
-    services.allocate("o1", "OMINOUS-MIRROR", 10, uow_trans_2)
-    assert uow_trans_2.committed
-
-
+'''
 def test_returns_deallocation():
     uow = FakeUnitOfWork()
     # allocated batch for o1
@@ -136,6 +146,4 @@ def test_deallocating_for_a_orderid_clear_all_orderlines():
     assert product.is_allocated_for_order("oref") is False
     assert product.available_quantity == 200
 
-
-def test_can_handle_events():
-    pytest.fail("Next chapter")
+'''

@@ -3,23 +3,27 @@ from typing import Set, Callable, Any, Iterable, Collection, Protocol
 from src.allocation.domain import model
 
 
-def check_entity_in_args(tracker: set, args: Iterable):
+def check_tracked_entity_in_args(tracker: set, args: Iterable):
     for arg in args:
-        if isinstance(arg, model.Product):
-            tracker.add(arg)
-        if isinstance(arg, Collection) and all(isinstance(item, model.Product) for item in arg):
-            tracker.update(arg)
+        check_for_tracked_entity(tracker, arg)
+
+
+def check_for_tracked_entity(tracker: set, arg: model.Product | Iterable[model.Product]):
+    if isinstance(arg, model.Product):
+        tracker.add(arg)
+    if isinstance(arg, Collection) and all(isinstance(item, model.Product) for item in arg):
+        tracker.update(arg)
 
 
 def track_entity(func: Callable[[model.Product | Collection[model.Product]], None]
                        | Callable[[Any], model.Product | Collection[model.Product]]) -> Callable:
     @functools.wraps(func)
     def wrapper_track_entity(self, *args, **kwargs):
-        check_entity_in_args(self.tracked, args)
-        check_entity_in_args(self.tracked, kwargs.values())
+        check_tracked_entity_in_args(self.tracked, args)
+        check_tracked_entity_in_args(self.tracked, kwargs.values())
         result = func(self, *args, **kwargs)
         if result:
-            self.tracked.add(result)
+            check_for_tracked_entity(self.tracked, result)
         return result
 
     return wrapper_track_entity
