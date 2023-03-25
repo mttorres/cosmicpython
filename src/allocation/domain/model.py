@@ -6,10 +6,6 @@ from dataclasses import dataclass
 from src.allocation.domain import events
 
 
-class OutOfStock(Exception):
-    pass
-
-
 class Product:
     def __init__(self, sku: str, batches: Optional[List[Batch]] = None, version_id_col: int = 0):
         self.sku = sku

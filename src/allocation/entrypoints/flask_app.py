@@ -37,7 +37,7 @@ def allocate_endpoint():
         )
         results = messagebus.handle(event, unit_of_work.SqlAlchemyUnitOfWork())
         batchref = results.pop(0)
-    except (model.OutOfStock, handlers.InvalidSku) as e:
+    except handlers.InvalidSku as e:
         return {"message": str(e)}, 400
 
     return {"batchref": batchref}, 201
