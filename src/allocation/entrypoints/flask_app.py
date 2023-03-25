@@ -3,9 +3,9 @@ from datetime import datetime
 from flask import Flask, request
 
 
-from src.allocation.domain import model
+from src.allocation.domain import model, events
 from src.allocation.adapters import orm
-from src.allocation.service_layer import services, unit_of_work
+from src.allocation.service_layer import handlers, unit_of_work, messagebus
 
 orm.start_mappers()
 app = Flask(__name__)
@@ -16,13 +16,13 @@ def add_batch_endpoint():
     eta = request.json["eta"]
     if eta is not None:
         eta = datetime.fromisoformat(eta).date()
-    services.add_batch(
+    event = events.BatchCreated(
         request.json["ref"],
         request.json["sku"],
         request.json["qty"],
-        eta,
-        unit_of_work.SqlAlchemyUnitOfWork()
+        eta
     )
+    messagebus.handle(event, unit_of_work.SqlAlchemyUnitOfWork())
     return "OK", 201
 
 
@@ -30,13 +30,14 @@ def add_batch_endpoint():
 def allocate_endpoint():
 
     try:
-        batchref = services.allocate(
+        event = events.AllocationRequired(
             request.json["orderid"],
             request.json["sku"],
-            request.json["qty"],
-            unit_of_work.SqlAlchemyUnitOfWork()
+            request.json["qty"]
         )
-    except (model.OutOfStock, services.InvalidSku) as e:
+        results = messagebus.handle(event, unit_of_work.SqlAlchemyUnitOfWork())
+        batchref = results.pop(0)
+    except (model.OutOfStock, handlers.InvalidSku) as e:
         return {"message": str(e)}, 400
 
     return {"batchref": batchref}, 201
