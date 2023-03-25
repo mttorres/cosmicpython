@@ -4,7 +4,7 @@ import pytest
 
 from src.allocation.adapters.repository import AbstractProductRepository, track_entity
 from src.allocation.service_layer import unit_of_work
-from src.allocation.service_layer import services
+from src.allocation.service_layer import handlers
 
 
 class FakeProductRepository(AbstractProductRepository):
@@ -32,7 +32,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         self.products = FakeProductRepository(storage if storage is not None else [])
         self.committed = False
 
-    def _commit(self):
+    def commit(self):
         self.committed = True
 
     def rollback(self):

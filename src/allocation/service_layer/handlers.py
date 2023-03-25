@@ -1,5 +1,4 @@
-from datetime import date
-from typing import List, Optional
+from typing import List
 
 from src.allocation.domain import model, events
 from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork
@@ -47,7 +46,7 @@ def add_batch(event: events.BatchCreated, uow: AbstractUnitOfWork):
     return event.ref
 
 
-def send_out_of_stock_notification(event: events.OutOfStock):
+def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractUnitOfWork):
     email.send_mail(
         "stock@made.com",
         f"Out of stock for {event.sku}",
