@@ -5,6 +5,8 @@ from src.allocation.adapters.repository import AbstractProductRepository, track_
 from src.allocation.domain import events
 from src.allocation.service_layer import unit_of_work, messagebus
 from src.allocation.service_layer import handlers
+from src.allocation.service_layer.handlers import send_out_of_stock_notification, allocate, add_batch, \
+    change_batch_quantity
 
 
 class FakeProductRepository(AbstractProductRepository):
@@ -46,17 +48,39 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 
 
+class FakeMessageBus(messagebus.AbstractMessageBus):
+    def __init__(self, uow: unit_of_work.AbstractUnitOfWork):
+        self.uow = uow
+        self.events_published = []
+        default_fake_handle = self.events_published.append
+        self.HANDLERS = {
+            events.AllocationRequired: [allocate],
+            events.BatchCreated: [add_batch],
+            events.BatchQuantityChanged: [change_batch_quantity],
+            events.OutOfStock: [default_fake_handle]
+        }
+
+    def handle(self, event: events.Event):
+        results = super().handle(event)
+        for product in self.uow.products.tracked:
+            while product.events:
+                self.events_published.append(product.events.pop(0))
+        return results
+
+
 class TestAddBatch:
     def test_add_batch_new_product(self):
         uow = FakeUnitOfWork()
-        messagebus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None), uow)
+        msbus = FakeMessageBus(uow)
+        msbus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None))
         assert uow.products.get("CRUNCHY-ARMCHAIR") is not None
         assert uow.committed
 
     def test_add_batch_existing_product(self):
         uow = FakeUnitOfWork()
-        messagebus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None), uow)
-        messagebus.handle(events.BatchCreated("b2", "GARISH-RUG", 99, None,), uow)
+        msbus = FakeMessageBus(uow)
+        msbus.handle(events.BatchCreated("b1", "CRUNCHY-ARMCHAIR", 100, None))
+        msbus.handle(events.BatchCreated("b2", "GARISH-RUG", 99, None, ))
         retrieved_product = uow.products.get("CRUNCHY-ARMCHAIR")
         assert retrieved_product is not None
         assert "b2" in [b.reference for b in uow.products.get("GARISH-RUG").batches]
@@ -64,49 +88,52 @@ class TestAddBatch:
 
 class TestAllocate:
     def test_returns_allocation(self):
-        uow = FakeUnitOfWork()
-        messagebus.handle(
-            events.BatchCreated("b1", "COMPLICATED-LAMP", 100, None), uow
+        msbus = FakeMessageBus(FakeUnitOfWork())
+        msbus.handle(
+            events.BatchCreated("b1", "COMPLICATED-LAMP", 100, None)
         )
-        results = messagebus.handle(
-            events.AllocationRequired("o1", "COMPLICATED-LAMP", 100), uow
+        results = msbus.handle(
+            events.AllocationRequired("o1", "COMPLICATED-LAMP", 100)
         )
         assert results.pop(0) == "b1"
 
     def test_allocate_errors_for_invalid_sku(self):
-        uow = FakeUnitOfWork()
-        messagebus.handle(events.BatchCreated("b1", "AREALSKU", 100, None,), uow)
+        msbus = FakeMessageBus(FakeUnitOfWork())
+        msbus.handle(events.BatchCreated("b1", "AREALSKU", 100, None, ))
 
         with pytest.raises(handlers.InvalidSku, match="Invalid sku NONEXISTENTSKU"):
-            messagebus.handle(
-                events.AllocationRequired("o1", "NONEXISTENTSKU", 10), uow
+            msbus.handle(
+                events.AllocationRequired("o1", "NONEXISTENTSKU", 10)
             )
 
     def test_commits(self):
         uow_trans_1 = FakeUnitOfWork()
-        messagebus.handle(events.BatchCreated("b1", "OMINOUS-MIRROR", 100, None), uow_trans_1)
+        msbus = FakeMessageBus(uow_trans_1)
+        msbus.handle(events.BatchCreated("b1", "OMINOUS-MIRROR", 100, None))
         assert uow_trans_1.committed
-        uow_trans_2 = FakeUnitOfWork(uow_trans_1.products.list())
-        messagebus.handle(events.AllocationRequired("o1", "OMINOUS-MIRROR", 10), uow_trans_2)
+        uow_trans_2 = FakeUnitOfWork(msbus.uow.products.list())
+        msbus.uow = uow_trans_2
+        msbus.handle(events.AllocationRequired("o1", "OMINOUS-MIRROR", 10))
         assert uow_trans_2.committed
 
 
 class TestChangeBatchQuantity:
     def test_changes_available_quantity(self):
         uow = FakeUnitOfWork()
-        messagebus.handle(
+        msbus = FakeMessageBus(uow)
+        msbus.handle(
             events.BatchCreated("batch1", "ADORABLE-SETTEE", 100, None),
-            uow
         )
         [batch] = uow.products.get(sku="ADORABLE-SETTEE").batches
         assert batch.available_quantity == 100
 
-        messagebus.handle(events.BatchQuantityChanged("batch1", 50), FakeUnitOfWork(uow.products.list()))
+        msbus.handle(events.BatchQuantityChanged("batch1", 50))
 
         assert batch.available_quantity == 50
 
     def test_reallocates_if_necessary(self):
         uow = FakeUnitOfWork()
+        msbus = FakeMessageBus(uow)
         event_history = [
             events.BatchCreated("batch1", "INDIFFERENT-TABLE", 50, None),
             events.BatchCreated("batch2", "INDIFFERENT-TABLE", 50, date.today()),
@@ -114,17 +141,25 @@ class TestChangeBatchQuantity:
             events.AllocationRequired("order2", "INDIFFERENT-TABLE", 20),
         ]
         for e in event_history:
-            messagebus.handle(e, uow)
+            msbus.handle(e)
         [batch1, batch2] = uow.products.get(sku="INDIFFERENT-TABLE").batches
         assert batch1.available_quantity == 10
         assert batch2.available_quantity == 50
 
-        messagebus.handle(events.BatchQuantityChanged("batch1", 25), uow)
+        msbus.handle(events.BatchQuantityChanged("batch1", 25))
 
+        '''
         # order1 ou order 2 serão desalocadas, assim temos 25 - 20
         assert batch1.available_quantity == 5
         # e 20 será realocado para a próxima batch
         assert batch2.available_quantity == 30
+        '''
+        # ao invés de verificar todos os sideeffects agora verificamos só se o evento foi emitido!
+        # assert on new events emitted rather than downstream side-effects
+        [reallocation_event] = msbus.events_published
+        assert isinstance(reallocation_event, events.AllocationRequired)
+        assert reallocation_event.orderid in {"order1", "order2"}
+        assert reallocation_event.sku == "INDIFFERENT-TABLE"
 
 
 class TestDeallocate:
