@@ -1,9 +1,11 @@
 from __future__ import annotations
 from datetime import date
-from typing import Optional, List
+from typing import Optional, List, Union
 from dataclasses import dataclass
 
-from src.allocation.domain import events
+from src.allocation.domain import events, commands
+
+Message = Union[commands.Command, events.Event]
 
 
 class Product:
@@ -11,7 +13,7 @@ class Product:
         self.sku = sku
         self.batches = batches if batches else []
         self.version_id_col = version_id_col
-        self.events = []  # type: List[events.Event]
+        self.messages = []  # type: List[Message]
 
     def allocate(self, line: OrderLine):
         try:
@@ -20,7 +22,7 @@ class Product:
             self.version_id_col += 1
             return batch.reference
         except StopIteration:
-            self.events.append(events.OutOfStock(line.sku))
+            self.messages.append(events.OutOfStock(line.sku))
             return None
 
     def add_stock(self, batch: Batch):
@@ -50,8 +52,8 @@ class Product:
         batch._purchased_quantity = qty
         while batch.available_quantity < 0:
             line = batch.deallocate_one()
-            self.events.append(
-                events.AllocationRequired(line.orderid, line.sku, line.qty)
+            self.messages.append(
+                commands.Allocate(line.orderid, line.sku, line.qty)
             )
 
     @property

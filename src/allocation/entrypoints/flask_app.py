@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Flask, request
 
 
-from src.allocation.domain import events
+from src.allocation.domain import commands
 from src.allocation.adapters import orm
 from src.allocation.service_layer import handlers, unit_of_work, messagebus
 
@@ -16,14 +16,14 @@ def add_batch_endpoint():
     eta = request.json["eta"]
     if eta is not None:
         eta = datetime.fromisoformat(eta).date()
-    event = events.BatchCreated(
+    command = commands.CreateBatch(
         request.json["ref"],
         request.json["sku"],
         request.json["qty"],
         eta
     )
 
-    messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(event)
+    messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(command)
     return "OK", 201
 
 
@@ -31,12 +31,12 @@ def add_batch_endpoint():
 def allocate_endpoint():
 
     try:
-        event = events.AllocationRequired(
+        command = commands.Allocate(
             request.json["orderid"],
             request.json["sku"],
             request.json["qty"]
         )
-        results = messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(event)
+        results = messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(command)
         batchref = results.pop(0)
     except handlers.InvalidSku as e:
         return {"message": str(e)}, 400

@@ -1,6 +1,6 @@
 from typing import List
 
-from src.allocation.domain import model, events
+from src.allocation.domain import model, events, commands
 from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork
 
 
@@ -12,9 +12,9 @@ class InvalidSku(Exception):
     pass
 
 
-def allocate(event: events.AllocationRequired, uow: AbstractUnitOfWork) -> str:
+def allocate(command: commands.Allocate, uow: AbstractUnitOfWork) -> str:
     line = model.OrderLine(
-        event.orderid, event.sku, event.qty
+        command.orderid, command.sku, command.qty
     )
     with uow:
         product = uow.products.get(sku=line.sku)
@@ -35,15 +35,15 @@ def deallocate(orderid: str, sku: str, uow: AbstractUnitOfWork) -> List[str]:
     return deallocated_batch_refs
 
 
-def add_batch(event: events.BatchCreated, uow: AbstractUnitOfWork):
+def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
     with uow:
-        product = uow.products.get(sku=event.sku)
+        product = uow.products.get(sku=command.sku)
         if product is None:
-            product = model.Product(event.sku)
+            product = model.Product(command.sku)
             uow.products.add(product)
-        product.add_stock(model.Batch(event.ref, event.sku, event.qty, event.eta))
+        product.add_stock(model.Batch(command.ref, command.sku, command.qty, command.eta))
         uow.commit()
-    return event.ref
+    return command.ref
 
 
 def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractUnitOfWork):
@@ -53,8 +53,8 @@ def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractUnitOf
     )
 
 
-def change_batch_quantity(event: events.BatchQuantityChanged, uow: AbstractUnitOfWork):
+def change_batch_quantity(command: commands.ChangeBatchQuantity, uow: AbstractUnitOfWork):
     with uow:
-        product = uow.products.get_by_batchref(batchref=event.ref)
-        product.change_batch_quantity(ref=event.ref, qty=event.qty)
+        product = uow.products.get_by_batchref(batchref=command.ref)
+        product.change_batch_quantity(ref=command.ref, qty=command.qty)
         uow.commit()
