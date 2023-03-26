@@ -60,7 +60,7 @@ class FakeMessageBus(messagebus.AbstractMessageBus):
             events.OutOfStock: [default_fake_handle]
         }
 
-    def handle(self, event: events.Event):
+    def handle(self, event: messagebus.Message):
         results = super().handle(event)
         for product in self.uow.products.tracked:
             while product.events:
