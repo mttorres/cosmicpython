@@ -1,5 +1,6 @@
 from typing import List
 
+from src.allocation.adapters import redis_eventpublisher
 from src.allocation.domain import model, events, commands
 from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork
 
@@ -58,3 +59,10 @@ def change_batch_quantity(command: commands.ChangeBatchQuantity, uow: AbstractUn
         product = uow.products.get_by_batchref(batchref=command.ref)
         product.change_batch_quantity(ref=command.ref, qty=command.qty)
         uow.commit()
+
+
+def publish_allocated_event(
+    event: events.Allocated,
+    uow: AbstractUnitOfWork,
+):
+    redis_eventpublisher.publish("line_allocated", event)

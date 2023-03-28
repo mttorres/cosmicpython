@@ -54,7 +54,8 @@ class FakeMessageBus(messagebus.AbstractMessageBus):
         self.messages_published = []
         default_fake_handle = self.messages_published.append
         self.EVENT_HANDLERS = {
-            events.OutOfStock: [default_fake_handle]
+            events.OutOfStock: [default_fake_handle],
+            events.Allocated: [default_fake_handle]
         }
         self.COMMAND_HANDLERS = {
             commands.Allocate: allocate,

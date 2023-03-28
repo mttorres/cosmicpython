@@ -6,7 +6,7 @@ from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential
 from src.allocation.domain import events, commands
 from src.allocation.domain.model import Message
 from src.allocation.service_layer.handlers import send_out_of_stock_notification, allocate, add_batch, \
-    change_batch_quantity
+    change_batch_quantity, publish_allocated_event
 
 if TYPE_CHECKING:
     from . import unit_of_work
@@ -33,6 +33,7 @@ class MessageBus(AbstractMessageBus):
 
     def __init__(self, uow: unit_of_work.AbstractUnitOfWork):
         self.EVENT_HANDLERS = {
+            events.Allocated: [publish_allocated_event],
             events.OutOfStock: [send_out_of_stock_notification],
         }  # type: Dict[Type[events.Event], List[Callable]]
         self.COMMAND_HANDLERS = {
