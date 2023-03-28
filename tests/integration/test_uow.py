@@ -17,12 +17,6 @@ def insert_batch(session, ref, sku, qty, eta, product_version=1):
         dict(sku=sku, version=product_version),
     )
 
-    [[product_id]] = session.execute(
-        text('SELECT id FROM products WHERE sku=:sku'),
-        dict(ref=ref, sku=sku),
-    )
-
-
     session.execute(text(
         "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
         " VALUES (:ref, :sku, :qty, :eta)"),
@@ -33,14 +27,6 @@ def insert_batch(session, ref, sku, qty, eta, product_version=1):
         text('SELECT id FROM batches WHERE reference=:ref AND sku=:sku'),
         dict(ref=ref, sku=sku),
     )
-
-    session.execute(text(
-        "INSERT INTO stocks (product_id, batch_id)"
-        " VALUES (:pid, :bid)"),
-        dict(pid=product_id, bid=batch_id)
-    )
-
-    return product_id, batch_id
 
 
 def get_allocated_batch_ref(session, orderid, sku):
@@ -99,7 +85,7 @@ def test_uow_can_add_a_batch(session_factory):
     batches_rows = list(session.execute(text('SELECT * FROM "batches"')))
     product_rows = list(session.execute(text('SELECT * FROM "products"')))
     assert model.Batch(*batches_rows[0][1:]) == expected_batch
-    assert model.Product(*product_rows[0][1:-1]) == expected_product
+    assert model.Product(*product_rows[0][0:1]) == expected_product
 
 
 def test_uow_can_retrieve_a_product_and_allocate_to_it(session_factory):

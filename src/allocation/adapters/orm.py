@@ -15,23 +15,22 @@ order_lines = Table(
     Column("orderid", String(255)),
 )
 
+version_number_column = Column("version_id_col", Integer, nullable=False, server_default="0")
+products = Table(
+    "products",
+    metadata,
+    Column("sku", String(255), primary_key=True),
+    version_number_column
+)
+
 batches = Table(
     "batches",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("reference", String(255)),
-    Column("sku", String(255)),
+    Column("sku", ForeignKey("products.sku")),
     Column("_purchased_quantity", Integer, nullable=False),
     Column("eta", Date, nullable=True),
-)
-
-version_number_column = Column("version_id_col", Integer, nullable=False)
-products = Table(
-    "products",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("sku", String(255)),
-    version_number_column
 )
 
 allocations = Table(
@@ -39,14 +38,6 @@ allocations = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("orderline_id", ForeignKey("order_lines.id")),
-    Column("batch_id", ForeignKey("batches.id")),
-)
-
-stocks = Table(
-    "stocks",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("product_id", ForeignKey("products.id")),
     Column("batch_id", ForeignKey("batches.id")),
 )
 
@@ -58,20 +49,17 @@ def start_mappers():
         batches,
         properties={
             "_allocations": relationship(
-                lines_mapper, secondary=allocations, collection_class=set,
+                lines_mapper,
+                secondary=allocations,
+                collection_class=set,
             )
         },
     )
-
     mapper_registry.map_imperatively(
         model.Product,
         products,
-        properties={
-            "batches": relationship(
-                batches_mapper, secondary=stocks, collection_class=list,
-            ),
-            "version_id_col": version_number_column
-        },
+        properties={"batches": relationship(batches_mapper),
+                    "version_id_col": version_number_column},
     )
 
 
