@@ -72,7 +72,7 @@ class MessageBus(AbstractMessageBus):
             try:
                 for attempt in Retrying(
                     stop=stop_after_attempt(3),
-                    wait=wait_exponential
+                    wait=wait_exponential()
                 ):
                     with attempt:
                         logger.debug("handling event %s with handler %s", event, handler)
