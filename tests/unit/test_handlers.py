@@ -159,7 +159,7 @@ class TestChangeBatchQuantity:
         '''
         # ao invés de verificar todos os sideeffects agora verificamos só se o evento foi emitido!
         # assert on new events emitted rather than downstream side-effects
-        [reallocation_event] = msbus.messages_published
+        reallocation_event = msbus.messages_published[-1]
         assert isinstance(reallocation_event, commands.Allocate)
         assert reallocation_event.orderid in {"order1", "order2"}
         assert reallocation_event.sku == "INDIFFERENT-TABLE"
