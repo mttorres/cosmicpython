@@ -29,4 +29,5 @@ def handle_change_batch_quantity(m):
 
 
 if __name__ == "__main__":
+    logger.info("Starting Event Listener")
     main()

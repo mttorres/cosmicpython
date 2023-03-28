@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - postgres
+      - redis_pubsub
     # If you start to have enough
     # containers that information (ev vars) starts to be duplicated in these sections,
     # you can use environment_file instead. We usually call ours container.env.
