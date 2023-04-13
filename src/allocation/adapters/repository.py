@@ -4,7 +4,7 @@ from typing import Set, Callable, Any, Iterable, Collection, Protocol
 from src.allocation.adapters import orm
 from src.allocation.domain import model
 
-
+# https://stackoverflow.com/questions/6307761/how-to-decorate-all-functions-of-a-class-without-typing-it-over-and-over-for-eac
 def check_tracked_entity_in_args(tracker: set, args: Iterable):
     for arg in args:
         check_for_tracked_entity(tracker, arg)
