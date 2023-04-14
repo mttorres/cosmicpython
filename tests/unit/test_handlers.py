@@ -5,9 +5,6 @@ from src.allocation.adapters.repository import AbstractProductRepository, track_
 from src.allocation.domain import events, commands
 from src.allocation.service_layer import unit_of_work, messagebus
 from src.allocation.service_layer import handlers
-from src.allocation.service_layer.handlers import allocate, add_batch, \
-    change_batch_quantity
-
 
 class FakeProductRepository(AbstractProductRepository):
 
@@ -55,12 +52,13 @@ class FakeMessageBus(messagebus.AbstractMessageBus):
         default_fake_handle = self.messages_published.append
         self.EVENT_HANDLERS = {
             events.OutOfStock: [default_fake_handle],
-            events.Allocated: [default_fake_handle]
+            events.Allocated: [default_fake_handle],
+            events.Deallocated: [default_fake_handle, handlers.reallocate]
         }
         self.COMMAND_HANDLERS = {
-            commands.Allocate: allocate,
-            commands.CreateBatch: add_batch,
-            commands.ChangeBatchQuantity: change_batch_quantity
+            commands.Allocate: handlers.allocate,
+            commands.CreateBatch: handlers.add_batch,
+            commands.ChangeBatchQuantity: handlers.change_batch_quantity
         }
 
     def handle(self, message: messagebus.Message):
