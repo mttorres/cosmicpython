@@ -6,6 +6,7 @@ from src.allocation.domain import events, commands
 from src.allocation.service_layer import unit_of_work, messagebus
 from src.allocation.service_layer import handlers
 
+
 class FakeProductRepository(AbstractProductRepository):
 
     def __init__(self, products):
@@ -132,7 +133,7 @@ class TestChangeBatchQuantity:
 
         assert batch.available_quantity == 50
 
-    def test_reallocates_if_necessary(self):
+    def test_issues_reallocation_if_necessary(self):
         uow = FakeUnitOfWork()
         msbus = FakeMessageBus(uow)
         event_history = [
@@ -158,7 +159,7 @@ class TestChangeBatchQuantity:
         # ao invés de verificar todos os sideeffects agora verificamos só se o evento foi emitido!
         # assert on new events emitted rather than downstream side-effects
         reallocation_event = msbus.messages_published[-1]
-        assert isinstance(reallocation_event, commands.Allocate)
+        assert isinstance(reallocation_event, events.Deallocated)
         assert reallocation_event.orderid in {"order1", "order2"}
         assert reallocation_event.sku == "INDIFFERENT-TABLE"
 
