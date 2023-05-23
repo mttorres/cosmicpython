@@ -1,8 +1,7 @@
-from datetime import date
-from typing import Optional
 from dataclasses import dataclass
 
 
+@dataclass
 class Event:
     pass
 
@@ -25,6 +24,3 @@ class Deallocated(Event):
     orderid: str
     sku: str
     qty: int
-
-
-
