@@ -94,10 +94,14 @@ class TestAllocate:
         msbus.handle(
             commands.CreateBatch("b1", "COMPLICATED-LAMP", 100, None)
         )
-        results = msbus.handle(
+
+        msbus.handle(
             commands.Allocate("o1", "COMPLICATED-LAMP", 100)
         )
-        assert results.pop(0) == "b1"
+        allocation_event = msbus.messages_published[-1]
+        assert isinstance(allocation_event, events.Allocated)
+        assert allocation_event.batchref == "b1"
+        assert allocation_event.sku == "COMPLICATED-LAMP"
 
     def test_allocate_errors_for_invalid_sku(self):
         msbus = FakeMessageBus(FakeUnitOfWork())

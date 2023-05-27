@@ -44,25 +44,22 @@ class MessageBus(AbstractMessageBus):
         self.uow = uow
 
     def handle(self, message: Message):
-        results = []
         queue = [message]
         while queue:
             message = queue.pop(0)
             if isinstance(message, events.Event):
                 self.handle_event(message)
             elif isinstance(message, commands.Command):
-                results.append(self.handle_command(message))
+                self.handle_command(message)
             else:
                 raise Exception(f"{message} was not an Event or Command")
             queue.extend(self.uow.collect_new_events())
-
-        return results
 
     def handle_command(self, command: commands.Command):
         logger.debug("handling command %s", command)
         try:
             handler = self.COMMAND_HANDLERS[type(command)]
-            return handler(command, self.uow)
+            handler(command, self.uow)
         except Exception:
             logger.exception("Exception handling command %s", command)
             raise

@@ -35,8 +35,7 @@ def allocate_endpoint():
             request.json["sku"],
             request.json["qty"]
         )
-        results = messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(command)
-        batchref = results.pop(0)
+        messagebus.MessageBus(unit_of_work.SqlAlchemyUnitOfWork()).handle(command)
     except handlers.InvalidSku as e:
         return {"message": str(e)}, 400
 
