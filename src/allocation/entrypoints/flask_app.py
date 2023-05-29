@@ -59,9 +59,3 @@ def allocation_view_endpoint(orderid, sku):
         return "not found", 404
     return jsonify(result), 200
 
-
-@app.route("/deallocate", methods=["POST"])
-def deallocate_endpoint():
-    return {"deallocated_batches": services.deallocate(
-        request.json["orderid"], request.json["sku"], unit_of_work.SqlAlchemyUnitOfWork()
-    )}, 200

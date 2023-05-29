@@ -29,16 +29,6 @@ def allocate(command: commands.Allocate, uow: AbstractUnitOfWork) -> str:
     return batchref
 
 
-def deallocate(orderid: str, sku: str, uow: AbstractUnitOfWork) -> List[str]:
-    with uow:
-        product = uow.products.get(sku=sku)
-        if product is None:
-            raise InvalidSku(f"Invalid sku {sku}")
-        deallocated_batch_refs = product.deallocate(orderid)
-        uow.commit()
-    return deallocated_batch_refs
-
-
 def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
     with uow:
         product = uow.products.get(sku=command.sku)

@@ -37,17 +37,6 @@ class Product:
         self.batches.append(batch)
         self.version_id_col += 1
 
-    def deallocate(self, orderid: str) -> List[str]:
-        batch_refs_deallocated = []
-        for b in self.batches:
-            if b.deallocate_for_order(orderid):
-                batch_refs_deallocated.append(b.reference)
-
-        if len(batch_refs_deallocated) > 0:
-            self.version_id_col += 1
-
-        return batch_refs_deallocated
-
     def is_allocated_for_line(self, line: OrderLine) -> bool:
         return len([batch for batch in self.batches if batch.is_allocated_for_line(line)]) > 0
 
@@ -108,13 +97,6 @@ class Batch:
 
     def is_allocated_for_order(self, orderid: str):
         return len([line for line in self._allocations if line.orderid == orderid]) > 0
-
-    # can be optimized by those insane ideas that i had before... but that would have to be persisted
-    # otherwise, the aux datastructure could be at in-memory concurrency mercy...?
-    def deallocate_for_order(self, orderid) -> bool:
-        prevsize = len(self._allocations)
-        self._allocations = set(orderline for orderline in self._allocations if orderline.orderid != orderid)
-        return prevsize > len(self._allocations)
 
     def deallocate_one(self) -> OrderLine:
         return self._allocations.pop()
