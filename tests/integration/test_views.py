@@ -24,3 +24,16 @@ def test_allocations_view(session_factory):
         {"sku": "sku1", "batchref": "sku1batch"},
         {"sku": "sku2", "batchref": "sku2batch"},
     ]
+
+
+def test_allocation_view(session_factory):
+    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    msbus = MessageBus(uow)
+    msbus.handle(commands.CreateBatch("sku1batch", "sku1", 50, None))
+    msbus.handle(commands.Allocate("order1", "sku1", 20))
+
+    msbus.handle(commands.CreateBatch("sku1batch-later", "sku1", 50, today))
+    msbus.handle(commands.Allocate("otherorder", "sku1", 30))
+
+    assert views.allocation("order1", "sku1", uow) == {"sku": "sku1", "batchref": "sku1batch"}
+    assert views.allocation("otherorder", "sku1", uow) == {"sku": "sku1", "batchref": "sku1batch-later"}

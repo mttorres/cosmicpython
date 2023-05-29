@@ -3,7 +3,7 @@ import pytest
 
 import src.allocation.config as config
 from tests.random_refs import random_sku, random_batchref, random_orderid
-from api_client import put_to_add_batch, post_to_allocate, get_allocation
+from api_client import put_to_add_batch, post_to_allocate, get_allocations, get_allocation
 
 
 @pytest.mark.usefixtures("postgres_db")
@@ -20,11 +20,9 @@ def test_happy_path_returns_202_and_batch_is_allocated():
 
     r = post_to_allocate(orderid, sku, qty=3)
 
-    r = get_allocation(orderid)
+    r = get_allocation(orderid, sku)
     assert r.ok
-    assert r.json() == [
-        {"sku": sku, "batchref": earlybatch}
-    ]
+    assert r.json() == {"sku": sku, "batchref": earlybatch}
 
 
 @pytest.mark.usefixtures("restart_api")
@@ -34,7 +32,7 @@ def test_unhappy_path_returns_400_and_error_message():
     assert r.status_code == 400
     assert r.json()["message"] == f"Invalid sku {unknown_sku}"
 
-    r = get_allocation(orderid)
+    r = get_allocations(orderid)
     assert r.status_code == 404
 
 
