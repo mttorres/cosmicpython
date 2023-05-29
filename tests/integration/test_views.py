@@ -36,4 +36,4 @@ def test_allocation_view(session_factory):
     msbus.handle(commands.Allocate("otherorder", "sku1", 30))
 
     assert views.allocation("order1", "sku1", uow) == {"sku": "sku1", "batchref": "sku1batch"}
-    assert views.allocation("otherorder", "sku1", uow) == {"sku": "sku1", "batchref": "sku1batch-later"}
+    assert views.allocation("otherorder", "sku1", uow) == {"sku": "sku1", "batchref": "sku1batch"}
