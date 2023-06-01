@@ -63,11 +63,15 @@ class FakeMessageBus(messagebus.AbstractMessageBus):
         }
 
     def handle(self, message: messagebus.Message):
-        results = super().handle(message)
+        if isinstance(message, events.Event):
+            for handler in self.EVENT_HANDLERS[type(message)]:
+                handler(message, self.uow)
+        if isinstance(message, commands.Command):
+            self.COMMAND_HANDLERS[type(message)](message, self.uow)
+
         for product in self.uow.products.tracked:
             while product.messages:
                 self.messages_published.append(product.messages.pop(0))
-        return results
 
 
 class TestAddBatch:

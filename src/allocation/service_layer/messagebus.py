@@ -19,47 +19,39 @@ class AbstractMessageBus(Protocol):
     uow: unit_of_work.AbstractUnitOfWork
 
     def handle(self, message: Message):
-        results = []
-        if isinstance(message, events.Event):
-            for handler in self.EVENT_HANDLERS[type(message)]:
-                handler(message, self.uow)
-        if isinstance(message, commands.Command):
-            results.append(self.COMMAND_HANDLERS[type(message)](message, self.uow))
-        return results
+        ...
 
 
 class MessageBus(AbstractMessageBus):
 
-    def __init__(self, uow: unit_of_work.AbstractUnitOfWork):
-        self.EVENT_HANDLERS = {
-            events.Allocated: [handlers.publish_allocated_event, handlers.add_allocation_to_read_model],
-            events.OutOfStock: [handlers. send_out_of_stock_notification],
-            events.Deallocated: [handlers.remove_allocation_from_read_model, handlers.reallocate]
-        }  # type: Dict[Type[events.Event], List[Callable]]
-        self.COMMAND_HANDLERS = {
-            commands.Allocate: handlers.allocate,
-            commands.CreateBatch: handlers.add_batch,
-            commands.ChangeBatchQuantity: handlers.change_batch_quantity
-        }  # type: Dict[Type[commands.Command], Callable]
+    def __init__(
+            self,
+            uow: unit_of_work.AbstractUnitOfWork,
+            event_handlers: Dict[Type[events.Event], List[Callable]],
+            command_handlers: Dict[Type[commands.Command], Callable]
+    ):
+        self.queue = []
+        self.EVENT_HANDLERS = event_handlers
+        self.COMMAND_HANDLERS = command_handlers
         self.uow = uow
 
     def handle(self, message: Message):
-        queue = [message]
-        while queue:
-            message = queue.pop(0)
+        self.queue.append(message) # Not thread safe?
+        while self.queue:
+            message = self.queue.pop(0)
             if isinstance(message, events.Event):
                 self.handle_event(message)
             elif isinstance(message, commands.Command):
                 self.handle_command(message)
             else:
                 raise Exception(f"{message} was not an Event or Command")
-            queue.extend(self.uow.collect_new_events())
 
     def handle_command(self, command: commands.Command):
         logger.debug("handling command %s", command)
         try:
             handler = self.COMMAND_HANDLERS[type(command)]
-            handler(command, self.uow)
+            handler(command)
+            self.queue.extend(self.uow.collect_new_events())
         except Exception:
             logger.exception("Exception handling command %s", command)
             raise
@@ -73,7 +65,8 @@ class MessageBus(AbstractMessageBus):
                 ):
                     with attempt:
                         logger.debug("handling event %s with handler %s", event, handler)
-                        handler(event, self.uow)
+                        handler(event)
+                        self.queue.extend(self.uow.collect_new_events())  # only collected if has not failed
             except RetryError as retry_failure:
                 logger.error(
                     "Failed to handle event %s times, giving up!",
