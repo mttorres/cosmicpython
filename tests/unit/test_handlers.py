@@ -52,22 +52,22 @@ class FakeMessageBus(messagebus.AbstractMessageBus):
         self.messages_published = []
         default_fake_handle = self.messages_published.append
         self.EVENT_HANDLERS = {
-            events.OutOfStock: [default_fake_handle],
+            events.OutOfStock: [lambda message: handlers.send_out_of_stock_notification(message, lambda x, y: None)],
             events.Allocated: [default_fake_handle],
-            events.Deallocated: [default_fake_handle, handlers.reallocate]
+            events.Deallocated: [default_fake_handle, lambda message: handlers.reallocate(message, self.uow)]
         }
         self.COMMAND_HANDLERS = {
-            commands.Allocate: handlers.allocate,
-            commands.CreateBatch: handlers.add_batch,
-            commands.ChangeBatchQuantity: handlers.change_batch_quantity
+            commands.Allocate: lambda message: handlers.allocate(message, self.uow),
+            commands.CreateBatch: lambda message: handlers.add_batch(message, self.uow),
+            commands.ChangeBatchQuantity: lambda message: handlers.change_batch_quantity(message, self.uow)
         }
 
     def handle(self, message: messagebus.Message):
         if isinstance(message, events.Event):
             for handler in self.EVENT_HANDLERS[type(message)]:
-                handler(message, self.uow)
+                handler(message)
         if isinstance(message, commands.Command):
-            self.COMMAND_HANDLERS[type(message)](message, self.uow)
+            self.COMMAND_HANDLERS[type(message)](message)
 
         for product in self.uow.products.tracked:
             while product.messages:
