@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from typing import List
+from typing import List, Dict, Type, Callable
 
 from sqlalchemy import text
 
@@ -16,7 +16,7 @@ class InvalidSku(Exception):
     pass
 
 
-def allocate(command: commands.Allocate, uow: AbstractUnitOfWork) -> str:
+def allocate(command: commands.Allocate, uow: AbstractUnitOfWork):
     line = model.OrderLine(
         command.orderid, command.sku, command.qty
     )
@@ -24,9 +24,8 @@ def allocate(command: commands.Allocate, uow: AbstractUnitOfWork) -> str:
         product = uow.products.get(sku=line.sku)
         if product is None:
             raise InvalidSku(f"Invalid sku {line.sku}")
-        batchref = product.allocate(line)
+        product.allocate(line)
         uow.commit()
-    return batchref
 
 
 def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
@@ -37,7 +36,6 @@ def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
             uow.products.add(product)
         product.add_stock(model.Batch(command.ref, command.sku, command.qty, command.eta))
         uow.commit()
-    return command.ref
 
 
 def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractUnitOfWork):
@@ -62,8 +60,8 @@ def reallocate(event: events.Deallocated, uow: AbstractUnitOfWork):
 
 
 def publish_allocated_event(
-    event: events.Allocated,
-    uow: AbstractUnitOfWork,
+        event: events.Allocated,
+        uow: AbstractUnitOfWork,
 ):
     redis_eventpublisher.publish("line_allocated", event)
 
@@ -93,3 +91,16 @@ def remove_allocation_from_read_model(
             dict(orderid=event.orderid, sku=event.sku),
         )
         uow.commit()
+
+
+EVENT_HANDLERS = {
+    events.Allocated: [publish_allocated_event, add_allocation_to_read_model],
+    events.Deallocated: [remove_allocation_from_read_model, reallocate],
+    events.OutOfStock: [send_out_of_stock_notification],
+}  # type: Dict[Type[events.Event], List[Callable]]
+
+COMMAND_HANDLERS = {
+    commands.Allocate: allocate,
+    commands.CreateBatch: add_batch,
+    commands.ChangeBatchQuantity: change_batch_quantity,
+}  # type: Dict[Type[commands.Command], Callable]

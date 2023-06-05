@@ -8,7 +8,9 @@ from sqlalchemy.orm import sessionmaker, clear_mappers
 from pathlib import Path
 
 import src.allocation.config as config
+from src.allocation import bootstrap
 from src.allocation.adapters.orm import metadata, start_mappers
+from src.allocation.service_layer import unit_of_work
 
 
 @pytest.fixture
@@ -28,6 +30,11 @@ def session_factory(in_memory_db):
 @pytest.fixture
 def session(session_factory):
     return session_factory()
+
+
+@pytest.fixture
+def session_without_mapping(in_memory_db):
+    yield sessionmaker(bind=in_memory_db)
 
 
 def wait_for_postgres_to_come_up(engine):
@@ -58,6 +65,18 @@ def postgres_session_factory(postgres_db):
 @pytest.fixture
 def postgres_session(postgres_session_factory):
     return postgres_session_factory()
+
+
+@pytest.fixture
+def sqlite_bus(session_without_mapping):
+    bus = bootstrap.bootstrap(
+        start_orm=True,
+        uow=unit_of_work.SqlAlchemyUnitOfWork(session_without_mapping),
+        send_mail=lambda *args: None,
+        publish=lambda *args: None,
+    )
+    yield bus
+    clear_mappers()
 
 
 '''

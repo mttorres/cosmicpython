@@ -1,12 +1,11 @@
 import inspect
 from typing import Callable
 
-from service_layer.unit_of_work import AbstractUnitOfWork, SqlAlchemyUnitOfWork
-from service_layer.messagebus import MessageBus
-from service_layer import handlers
-from adapters.redis_eventpublisher import publish
-import adapters.orm as orm
-from src.allocation.adapters import email
+from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork, SqlAlchemyUnitOfWork
+from src.allocation.service_layer.messagebus import AbstractMessageBus, MessageBus
+from src.allocation.service_layer import handlers
+import src.allocation.adapters.orm as orm
+from src.allocation.adapters import email, redis_eventpublisher
 
 
 def inject_dependencies(handler, dependencies):
@@ -22,7 +21,8 @@ def inject_dependencies(handler, dependencies):
 def bootstrap(start_orm: bool = True,
               uow: AbstractUnitOfWork = SqlAlchemyUnitOfWork,
               send_mail: Callable = email.send,
-              publish: Callable = publish) -> MessageBus:
+              publish: Callable = redis_eventpublisher.publish,
+              messagebus_init: Callable = MessageBus) -> AbstractMessageBus:
     if start_orm:
         orm.start_mappers()
 
@@ -41,6 +41,6 @@ def bootstrap(start_orm: bool = True,
         for command_type, handler in handlers.COMMAND_HANDLERS.items()
     }
 
-    return MessageBus(uow=uow,
-                      event_handlers=injected_event_handlers,
-                      command_handlers=injected_command_handlers)
+    return messagebus_init(uow=uow,
+                           event_handlers=injected_event_handlers,
+                           command_handlers=injected_command_handlers)
