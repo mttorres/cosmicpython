@@ -1,4 +1,6 @@
 import json
+
+import pytest
 from tenacity import Retrying, stop_after_delay
 
 from tests.e2e import redis_client
@@ -6,6 +8,9 @@ from tests.random_refs import random_sku, random_orderid, random_batchref
 import api_client
 
 
+@pytest.mark.usefixtures("postgres_db")
+@pytest.mark.usefixtures("restart_api")
+@pytest.mark.usefixtures("restart_redis_pubsub")
 def check_allocated_event(batchref, orderid, subscription):
     messages = []
     for attempt in Retrying(stop=stop_after_delay(3), reraise=True):
@@ -19,6 +24,9 @@ def check_allocated_event(batchref, orderid, subscription):
             assert data["batchref"] == batchref
 
 
+@pytest.mark.usefixtures("postgres_db")
+@pytest.mark.usefixtures("restart_api")
+@pytest.mark.usefixtures("restart_redis_pubsub")
 def test_change_batch_quantity_leading_to_reallocation():
     # start with two batches and an order allocated to one of them
     orderid, sku = random_orderid(), random_sku()
