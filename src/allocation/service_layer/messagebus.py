@@ -52,8 +52,8 @@ class MessageBus(AbstractMessageBus):
             handler = self.COMMAND_HANDLERS[type(command)]
             handler(command)
             self.queue.extend(self.uow.collect_new_events())
-        except Exception:
-            logger.exception("Exception handling command %s", command)
+        except Exception as e:
+            logger.exception("Exception %s  while handling command %s", e, command)
             raise
 
     def handle_event(self, event: events.Event):
