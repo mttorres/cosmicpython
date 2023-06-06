@@ -4,6 +4,7 @@ from typing import List, Dict, Type, Callable
 from sqlalchemy import text
 
 from src.allocation.adapters import redis_eventpublisher
+from src.allocation.adapters.notifications import NotificationsService
 from src.allocation.domain import model, events, commands
 from src.allocation.service_layer.unit_of_work import AbstractUnitOfWork, SqlAlchemyUnitOfWork
 
@@ -38,8 +39,8 @@ def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
         uow.commit()
 
 
-def send_out_of_stock_notification(event: events.OutOfStock, notifications: Callable):
-    notifications(
+def send_out_of_stock_notification(event: events.OutOfStock, notifications: NotificationsService):
+    notifications.send(
         "stock@made.com",
         f"Out of stock for {event.sku}",
     )

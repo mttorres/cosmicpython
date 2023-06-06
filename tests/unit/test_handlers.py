@@ -1,5 +1,8 @@
+from collections import defaultdict
+
 import pytest
 from datetime import date
+from typing import Dict, List
 
 from src.allocation.adapters.repository import track_entity
 from src.allocation.domain import events, commands
@@ -46,15 +49,24 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 
 
+class FakeNotifications:
+    def __init__(self):
+        self.sent = defaultdict(list)  # type: Dict[str, List[str]]
+
+    def send(self, destination, message):
+        self.sent[destination].append(message)
+
+
 class FakeMessageBus:
     def __init__(self, uow: unit_of_work.AbstractUnitOfWork):
         self.uow = uow
         self.messages_published = []
         default_fake_handle = self.messages_published.append
+        self.fake_notifs = FakeNotifications()
         self.EVENT_HANDLERS = {
-            events.OutOfStock: [lambda message: handlers.send_out_of_stock_notification(message, lambda x, y: None)],
+            events.OutOfStock: [lambda message: handlers.send_out_of_stock_notification(message, self.fake_notifs)],
             events.Allocated: [default_fake_handle],
-            events.Deallocated: [default_fake_handle, lambda message: handlers.reallocate(message, self.uow)]
+            events.Deallocated: [default_fake_handle]
         }
         self.COMMAND_HANDLERS = {
             commands.Allocate: lambda message: handlers.allocate(message, self.uow),
@@ -62,16 +74,19 @@ class FakeMessageBus:
             commands.ChangeBatchQuantity: lambda message: handlers.change_batch_quantity(message, self.uow)
         }
 
+    def _handle_event(self, event: events.Event):
+        for handler in self.EVENT_HANDLERS[type(event)]:
+            handler(event)
+
     def handle(self, message: messagebus.Message):
         if isinstance(message, events.Event):
-            for handler in self.EVENT_HANDLERS[type(message)]:
-                handler(message)
+            self._handle_event(message)
         if isinstance(message, commands.Command):
             self.COMMAND_HANDLERS[type(message)](message)
 
         for product in self.uow.products.tracked:
             while product.messages:
-                self.messages_published.append(product.messages.pop(0))
+                self._handle_event(product.messages.pop(0))
 
 
 class TestAddBatch:
@@ -125,6 +140,15 @@ class TestAllocate:
         msbus.uow = uow_trans_2
         msbus.handle(commands.Allocate("o1", "OMINOUS-MIRROR", 10))
         assert uow_trans_2.committed
+
+    def test_sends_email_on_out_of_stock_error(self):
+        uow = FakeUnitOfWork()
+        bus = FakeMessageBus(uow)
+        bus.handle(commands.CreateBatch("b1", "POPULAR-CURTAINS", 9, None))
+        bus.handle(commands.Allocate("o1", "POPULAR-CURTAINS", 10))
+        assert bus.fake_notifs.sent["stock@made.com"] == [
+            f"Out of stock for POPULAR-CURTAINS",
+        ]
 
 
 class TestChangeBatchQuantity:
