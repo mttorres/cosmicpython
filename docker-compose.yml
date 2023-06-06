@@ -9,10 +9,12 @@ services:
     depends_on:
       - postgres
       - redis
+      - mailhog
     environment:
       - DB_HOST=postgres
       - DB_PASSWORD=abc123
       - REDIS_HOST=redis
+      - EMAIL_HOST=mailhog
       - PYTHONDONTWRITEBYTECODE=1
       - LOGLEVEL=DEBUG
     volumes:
@@ -26,6 +28,7 @@ services:
     image: allocation-image
     depends_on:
       - redis_pubsub
+      - mailhog
     # If you start to have enough
     # containers that information (ev vars) starts to be duplicated in these sections,
     # you can use environment_file instead. We usually call ours container.env.
@@ -34,6 +37,7 @@ services:
       - DB_PASSWORD=abc123
       - API_HOST=api
       - REDIS_HOST=redis
+      - EMAIL_HOST=mailhog
       - PYTHONDONTWRITEBYTECODE=1
       # if you’re mounting volumes to share source folders between your local dev machine and the container,
       # the PYTHONDONTWRITEBYTECODE environment variable tells Python to not write .pyc files,
@@ -70,3 +74,9 @@ services:
     image: redis:alpine
     ports:
       - "63791:6379"
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "11025:1025"
+      - "18025:8025"
