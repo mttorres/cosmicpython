@@ -38,8 +38,8 @@ def add_batch(command: commands.CreateBatch, uow: AbstractUnitOfWork):
         uow.commit()
 
 
-def send_out_of_stock_notification(event: events.OutOfStock, send_mail: Callable):
-    send_mail(
+def send_out_of_stock_notification(event: events.OutOfStock, notifications: Callable):
+    notifications(
         "stock@made.com",
         f"Out of stock for {event.sku}",
     )

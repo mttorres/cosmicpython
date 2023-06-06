@@ -76,7 +76,7 @@ def sqlite_bus(session_without_mapping):
     bus = bootstrap.bootstrap(
         start_orm=True,
         uow=unit_of_work.SqlAlchemyUnitOfWork(session_without_mapping),
-        send_mail=lambda *args: None,
+        notifications=lambda *args: None,
         publish=lambda *args: None,
     )
     yield bus
