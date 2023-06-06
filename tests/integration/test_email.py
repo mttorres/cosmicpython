@@ -11,10 +11,10 @@ def get_email_from_mailhog(sku):
     return next(m for m in all_emails["items"] if sku in str(m))
 
 
-def test_out_of_stock_email(bus):
+def test_out_of_stock_email(sqlite_bus):
     sku = random_sku()
-    bus.handle(commands.CreateBatch("batch1", sku, 9, None))
-    bus.handle(commands.Allocate("order1", sku, 10))
+    sqlite_bus.handle(commands.CreateBatch("batch1", sku, 9, None))
+    sqlite_bus.handle(commands.Allocate("order1", sku, 10))
     email = get_email_from_mailhog(sku)
     assert email["Raw"]["From"] == "allocations@example.com"
     assert email["Raw"]["To"] == ["stock@made.com"]

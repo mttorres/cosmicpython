@@ -13,6 +13,7 @@ from tenacity import retry, stop_after_delay
 
 import src.allocation.config as config
 from src.allocation import bootstrap
+from src.allocation.adapters.notifications import EmailNotifications
 from src.allocation.adapters.orm import metadata, start_mappers
 from src.allocation.service_layer import unit_of_work
 
@@ -76,7 +77,7 @@ def sqlite_bus(session_without_mapping):
     bus = bootstrap.bootstrap(
         start_orm=True,
         uow=unit_of_work.SqlAlchemyUnitOfWork(session_without_mapping),
-        notifications=lambda *args: None,
+        notifications=EmailNotifications(),
         publish=lambda *args: None,
     )
     yield bus
