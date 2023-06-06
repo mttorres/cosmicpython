@@ -4,32 +4,6 @@ from typing import Set, Callable, Any, Iterable, Collection, Protocol
 from src.allocation.adapters import orm
 from src.allocation.domain import model
 
-# https://stackoverflow.com/questions/6307761/how-to-decorate-all-functions-of-a-class-without-typing-it-over-and-over-for-eac
-def check_tracked_entity_in_args(tracker: set, args: Iterable):
-    for arg in args:
-        check_for_tracked_entity(tracker, arg)
-
-
-def check_for_tracked_entity(tracker: set, arg: model.Product | Iterable[model.Product]):
-    if isinstance(arg, model.Product):
-        tracker.add(arg)
-    if isinstance(arg, Collection) and all(isinstance(item, model.Product) for item in arg):
-        tracker.update(arg)
-
-
-def track_entity(func: Callable[[model.Product | Collection[model.Product]], None]
-                       | Callable[[Any], model.Product | Collection[model.Product]]) -> Callable:
-    @functools.wraps(func)
-    def wrapper_track_entity(self, *args, **kwargs):
-        check_tracked_entity_in_args(self.tracked, args)
-        check_tracked_entity_in_args(self.tracked, kwargs.values())
-        result = func(self, *args, **kwargs)
-        if result:
-            check_for_tracked_entity(self.tracked, result)
-        return result
-
-    return wrapper_track_entity
-
 
 # Due to python is ducktype (Protocols: Structural subtyping (static duck typing))
 # We don't need ABC's, we only use it for educational reasons and to make explicit.
@@ -44,7 +18,35 @@ class AbstractProductRepository(Protocol):
         ...
 
 
-class SqlAlchemyProductRepository(AbstractProductRepository):
+# https://stackoverflow.com/questions/6307761/how-to-decorate-all-functions-of-a-class-without-typing-it-over-and-over-for-eac
+
+def check_tracked_entity_in_args(tracker: set, args: Iterable):
+    for arg in args:
+        check_for_tracked_entity(tracker, arg)
+
+
+def check_for_tracked_entity(tracker: set, arg: model.Product | Iterable[model.Product]):
+    if isinstance(arg, model.Product):
+        tracker.add(arg)
+    if isinstance(arg, Collection) and all(isinstance(item, model.Product) for item in arg):
+        tracker.update(arg)
+
+
+def track_entity(func: Callable[[AbstractProductRepository, model.Product | Collection[model.Product]], None]
+                       | Callable[[Any], model.Product | Collection[model.Product]]) -> Callable:
+    @functools.wraps(func)
+    def wrapper_track_entity(self, *args, **kwargs):
+        check_tracked_entity_in_args(self.tracked, args)
+        check_tracked_entity_in_args(self.tracked, kwargs.values())
+        result = func(self, *args, **kwargs)
+        if result:
+            check_for_tracked_entity(self.tracked, result)
+        return result
+
+    return wrapper_track_entity
+
+
+class SqlAlchemyProductRepository:
     def __init__(self, session):
         self.session = session
         self.tracked = set()  # type: Set[model.Product]

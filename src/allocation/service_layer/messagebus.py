@@ -5,7 +5,6 @@ from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential
 
 from src.allocation.domain import events, commands
 from src.allocation.domain.model import Message
-from src.allocation.service_layer import handlers
 
 if TYPE_CHECKING:
     from . import unit_of_work
@@ -22,7 +21,7 @@ class AbstractMessageBus(Protocol):
         ...
 
 
-class MessageBus(AbstractMessageBus):
+class MessageBus:
 
     def __init__(
             self,

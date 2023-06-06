@@ -1,13 +1,13 @@
 import pytest
 from datetime import date
 
-from src.allocation.adapters.repository import AbstractProductRepository, track_entity
+from src.allocation.adapters.repository import track_entity
 from src.allocation.domain import events, commands
 from src.allocation.service_layer import unit_of_work, messagebus
 from src.allocation.service_layer import handlers
 
 
-class FakeProductRepository(AbstractProductRepository):
+class FakeProductRepository:
 
     def __init__(self, products):
         self._products = set(products)
@@ -46,7 +46,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 
 
-class FakeMessageBus(messagebus.AbstractMessageBus):
+class FakeMessageBus:
     def __init__(self, uow: unit_of_work.AbstractUnitOfWork):
         self.uow = uow
         self.messages_published = []
