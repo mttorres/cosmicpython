@@ -6,4 +6,4 @@
 ## About 💬
 
 My notes and implementation of the [CosmicPython](https://github.com/cosmicpython/code/tree/master) 
-project. An educational python project about scalable architecture, using DDD, TDD and event driven concepts.
+project. An educational python project about scalable architecture, using SOLID, DDD, TDD, event driven concepts and more.
